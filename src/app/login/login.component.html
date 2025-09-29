@@ -1,0 +1,117 @@
+<div class="login-container">
+  <div class="logo-container">
+    <img src="/assets/image/logo-geomed.jpg" alt="Geomed Logo" class="logo">
+  </div>
+  
+  <div class="flip-card" [class.flipped]="isRegisterMode">
+    <div class="flip-card-inner">
+
+      <!-- LOGIN SIDE -->
+      <div class="flip-card-front">
+        <div class="card-header">
+          <h2>Printer Monitoring</h2>
+          <p>Silakan login untuk melanjutkan</p>
+        </div>
+
+        <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+          <div class="form-group">
+            <label for="loginUsername">Username</label>
+            <input type="text" id="loginUsername" name="loginUsername" [(ngModel)]="credentials.username"
+              class="form-control" required #loginUsername="ngModel">
+            <div *ngIf="loginUsername.invalid && loginUsername.touched" class="error-message">
+              Username harus diisi
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" name="loginPassword" [(ngModel)]="credentials.password"
+              class="form-control" required #loginPassword="ngModel">
+            <div *ngIf="loginPassword.invalid && loginPassword.touched" class="error-message">
+              Password harus diisi
+            </div>
+          </div>
+
+          <div *ngIf="errorMessage" class="alert alert-error">
+            {{ errorMessage }}
+          </div>
+
+          <button type="submit" class="btn btn-primary" [disabled]="loginForm.invalid || isLoading">
+            <span *ngIf="isLoading">Loading...</span>
+            <span *ngIf="!isLoading">Login</span>
+          </button>
+        </form>
+
+        <div class="card-footer">
+          <p>Belum punya akun?
+            <a href="#" (click)="toggleMode($event)">Daftar di sini</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- REGISTER SIDE -->
+      <div class="flip-card-back">
+        <div class="card-header">
+          <h2>Daftar Akun Baru</h2>
+          <p>Buat akun untuk mengakses sistem</p>
+        </div>
+
+        <form (ngSubmit)="onRegister()" #registerForm="ngForm">
+          <div class="form-group">
+            <label for="regUsername">Username</label>
+            <input type="text" id="regUsername" name="regUsername" [(ngModel)]="registerData.username"
+              class="form-control" required #regUsername="ngModel">
+            <div *ngIf="regUsername.invalid && regUsername.touched" class="error-message">
+              Username harus diisi
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="regEmail">Email</label>
+            <input type="email" id="regEmail" name="regEmail" [(ngModel)]="registerData.email" class="form-control"
+              required email #regEmail="ngModel">
+            <div *ngIf="regEmail.invalid && regEmail.touched" class="error-message">
+              Email harus valid
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="regPassword">Password</label>
+            <input type="password" id="regPassword" name="regPassword" [(ngModel)]="registerData.password"
+              class="form-control" required minlength="6" #regPassword="ngModel">
+            <div *ngIf="regPassword.invalid && regPassword.touched" class="error-message">
+              Password minimal 6 karakter
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Konfirmasi Password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword"
+              [(ngModel)]="registerData.confirmPassword" class="form-control" required #confirmPassword="ngModel">
+            <div *ngIf="confirmPassword.touched && registerData.password !== registerData.confirmPassword"
+              class="error-message">
+              Password tidak cocok
+            </div>
+          </div>
+
+          <div *ngIf="errorMessage" class="alert alert-error">
+            {{ errorMessage }}
+          </div>
+
+          <button type="submit" class="btn btn-primary"
+            [disabled]="registerForm.invalid || isLoading || registerData.password !== registerData.confirmPassword">
+            <span *ngIf="isLoading">Loading...</span>
+            <span *ngIf="!isLoading">Daftar</span>
+          </button>
+        </form>
+
+        <div class="card-footer">
+          <p>Sudah punya akun?
+            <a href="#" (click)="toggleMode($event)">Login di sini</a>
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

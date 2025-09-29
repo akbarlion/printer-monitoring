@@ -1,0 +1,130 @@
+<div class="alerts-container">
+  <div class="alerts-header">
+    <h1>Alerts Management</h1>
+    <div class="header-actions">
+      <button pButton pRipple icon="pi pi-refresh" label="Refresh" (click)="loadAlerts()">
+      </button>
+
+      <button pButton pRipple icon="pi pi-check-circle" label="Mark All Read" severity="success"
+        (click)="markAllAsRead()" [disabled]="!hasUnreadAlerts">
+      </button>
+    </div>
+  </div>
+
+  <div class="alerts-filters">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Filter by Severity:</label>
+        <p-dropdown [options]="severityOptions" [(ngModel)]="selectedSeverity" placeholder="All Severities"
+          optionLabel="label" optionValue="value" (onChange)="filterAlerts()" [showClear]="true">
+        </p-dropdown>
+      </div>
+
+      <div class="filter-group">
+        <label>Filter by Status:</label>
+        <p-dropdown [options]="statusOptions" [(ngModel)]="selectedStatus" placeholder="All Status" optionLabel="label"
+          optionValue="value" (onChange)="filterAlerts()" [showClear]="true">
+        </p-dropdown>
+      </div>
+
+      <div class="filter-group">
+        <label>Search:</label>
+        <input type="text" pInputText [(ngModel)]="searchText" placeholder="Search alerts..." (input)="filterAlerts()">
+      </div>
+    </div>
+  </div>
+
+  <div class="alerts-content">
+    <p-table [value]="filteredAlerts" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[5, 10, 20]"
+      [loading]="isLoading" styleClass="p-datatable-striped" [globalFilterFields]="['printerName', 'message']">
+
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3rem">
+            <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+          </th>
+          <th pSortableColumn="severity">Severity <p-sortIcon field="severity"></p-sortIcon></th>
+          <th pSortableColumn="printerName">Printer <p-sortIcon field="printerName"></p-sortIcon></th>
+          <th pSortableColumn="alertType">Type <p-sortIcon field="alertType"></p-sortIcon></th>
+          <th>Message</th>
+          <th pSortableColumn="timestamp">Time <p-sortIcon field="timestamp"></p-sortIcon></th>
+          <th>Status</th>
+          <th style="width: 8rem">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-alert let-rowIndex="rowIndex">
+        <tr [ngClass]="getAlertRowClass(alert)">
+          <td>
+            <p-tableCheckbox [value]="alert"></p-tableCheckbox>
+          </td>
+          <td>
+            <p-tag [value]="alert.severity" [severity]="getSeverityTagType(alert.severity)"
+              [icon]="getSeverityIcon(alert.severity)">
+            </p-tag>
+          </td>
+          <td>
+            <strong>{{ alert.printerName }}</strong>
+          </td>
+          <td>
+            <span class="alert-type">{{ getAlertTypeLabel(alert.alertType) }}</span>
+          </td>
+          <td>
+            <span class="alert-message">{{ alert.message }}</span>
+          </td>
+          <td>
+            <span class="alert-time">{{ alert.timestamp | date:'short' }}</span>
+          </td>
+          <td>
+            <p-tag [value]="alert.isAcknowledged ? 'Read' : 'Unread'"
+              [severity]="alert.isAcknowledged ? 'success' : 'warning'">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button 
+                *ngIf="!alert.isAcknowledged"
+                pButton 
+                pRipple
+                icon="pi pi-check" 
+                class="p-button-sm p-button-success"
+                (click)="acknowledgeAlert(alert)"
+                pTooltip="Mark as Read">
+              </button>
+
+              <button 
+                pButton 
+                pRipple
+                icon="pi pi-eye" 
+                class="p-button-sm p-button-info"
+                (click)="viewAlertDetails(alert)"
+                pTooltip="View Details">
+              </button>
+
+              <button 
+                pButton 
+                pRipple
+                icon="pi pi-trash" 
+                class="p-button-sm p-button-danger"
+                (click)="deleteAlert(alert)"
+                pTooltip="Delete Alert">
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="8" class="text-center">
+            <div class="empty-state">
+              <i class="pi pi-info-circle" style="font-size: 3rem; color: #6c757d;"></i>
+              <h3>No Alerts Found</h3>
+              <p>There are no alerts matching your criteria.</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>

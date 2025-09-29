@@ -1,0 +1,110 @@
+<div class="dashboard-container">
+  <!-- Header Stats -->
+  <div class="stats-grid">
+    <div class="stat-card total">
+      <div class="stat-icon">🖨️</div>
+      <div class="stat-info">
+        <h3>{{ dashboardStats.total }}</h3>
+        <p>Total Printers</p>
+      </div>
+    </div>
+
+    <div class="stat-card online">
+      <div class="stat-icon">✅</div>
+      <div class="stat-info">
+        <h3>{{ dashboardStats.online }}</h3>
+        <p>Online</p>
+      </div>
+    </div>
+
+    <div class="stat-card offline">
+      <div class="stat-icon">❌</div>
+      <div class="stat-info">
+        <h3>{{ dashboardStats.offline }}</h3>
+        <p>Offline</p>
+      </div>
+    </div>
+
+    <div class="stat-card warning">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-info">
+        <h3>{{ dashboardStats.warning }}</h3>
+        <p>Warning</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="dashboard-content">
+    <!-- Recent Alerts -->
+    <div class="dashboard-section">
+      <div class="section-header">
+        <h2>Recent Alerts</h2>
+        <button pButton pRipple class="btn-link" routerLink="/alerts">View All</button>
+      </div>
+
+      <div class="alerts-list" *ngIf="alerts.length > 0; else noAlerts">
+        <div class="alert-item" *ngFor="let alert of alerts" [ngClass]="getSeverityClass(alert.severity)">
+          <div class="alert-icon">⚠️</div>
+          <div class="alert-content">
+            <h4>{{ alert.printerName }}</h4>
+            <p>{{ alert.message }}</p>
+            <small>{{ alert.timestamp | date:'short' }}</small>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noAlerts>
+        <div class="no-data">
+          <p>No recent alerts</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Printer Status Overview -->
+    <div class="dashboard-section">
+      <div class="section-header">
+        <h2>Printer Status</h2>
+        <div class="header-actions">
+          <button pButton pRipple class="btn-refresh" (click)="refreshNow()" title="Refresh SNMP Data">
+            🔄 Refresh
+          </button>
+          <button pButton pRipple class="btn-link" routerLink="/printers">View All</button>
+        </div>
+      </div>
+
+      <div class="printers-grid" *ngIf="printers.length > 0; else noPrinters">
+        <div class="printer-card" *ngFor="let printer of printers.slice(0, 6)"
+          [ngClass]="getStatusClass(printer.status)">
+          <div class="printer-header">
+            <h4>{{ printer.name }}</h4>
+            <span class="status-badge">{{ printer.status }}</span>
+          </div>
+          <div class="printer-info">
+            <p><strong>Model:</strong> {{ printer.model }}</p>
+            <p><strong>Location:</strong> {{ printer.location }}</p>
+            <p><strong>IP:</strong> {{ printer.ipAddress }}</p>
+          </div>
+          <div class="printer-stats" *ngIf="printer.status === 'online'">
+            <div class="stat">
+              <span>Toner:</span>
+              <div class="progress-bar">
+                <div class="progress" [style.width.%]="printer.tonerLevel || 0"></div>
+              </div>
+              <span>{{ printer.tonerLevel || 0 }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noPrinters>
+        <div class="no-data">
+          <p>No printers found</p>
+          <button pButton pRipple class="btn-add-printer" routerLink="/printers">
+            + Add Your First Printer
+          </button>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>

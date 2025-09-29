@@ -1,0 +1,132 @@
+<div class="printer-list-container">
+  <div class="header">
+    <h1>Printer Management</h1>
+    <button pButton pRipple class="btn-primary" (click)="toggleAddForm()">
+      {{ showAddForm ? 'Cancel' : '+ Add Printer' }}
+    </button>
+  </div>
+
+  <!-- Add Printer Form -->
+  <div class="add-form" *ngIf="showAddForm">
+    <h3>Add New Printer</h3>
+    <form [formGroup]="addPrinterForm" (ngSubmit)="onSubmit()">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Printer Name *</label>
+          <input type="text" formControlName="name" placeholder="e.g. Office Printer 1">
+          <div class="error" *ngIf="addPrinterForm.get('name')?.invalid && addPrinterForm.get('name')?.touched">
+            Name is required (min 3 characters)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>IP Address *</label>
+          <input type="text" formControlName="ipAddress" placeholder="192.168.1.100">
+          <div class="error"
+            *ngIf="addPrinterForm.get('ipAddress')?.invalid && addPrinterForm.get('ipAddress')?.touched">
+            Valid IP address is required
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Model *</label>
+          <input type="text" formControlName="model" placeholder="HP LaserJet Pro">
+        </div>
+
+        <div class="form-group">
+          <label>Location *</label>
+          <input type="text" formControlName="location" placeholder="Office Floor 2">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>SNMP Community</label>
+          <input type="text" formControlName="snmpCommunity" placeholder="public">
+        </div>
+
+        <div class="form-group">
+          <button pButton pRipple type="button" class="btn-test" (click)="testConnection()"
+            [disabled]="testingConnection">
+            {{ testingConnection ? 'Testing...' : 'Test Connection' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button pButton pRipple type="submit" class="btn-primary" [disabled]="!addPrinterForm.valid || isLoading">
+          {{ isLoading ? 'Adding...' : 'Add Printer' }}
+        </button>
+        <button pButton pRipple type="button" class="btn-secondary" (click)="toggleAddForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Printers List -->
+  <div class="printers-section">
+    <div class="loading" *ngIf="isLoading && printers.length === 0">
+      Loading printers...
+    </div>
+
+    <div class="printers-grid" *ngIf="printers.length > 0">
+      <div class="printer-card" *ngFor="let printer of printers" [ngClass]="getStatusClass(printer.status)">
+        <div class="card-header">
+          <h3>{{ printer.name }}</h3>
+          <div class="actions">
+            <button pButton pRipple class="btn-icon" (click)="refreshPrinterStatus(printer)"
+              title="Refresh Status">🔄</button>
+            <button pButton pRipple class="btn-icon" title="Edit">✏️</button>
+            <button pButton pRipple class="btn-icon delete" (click)="deletePrinter(printer)" title="Delete">🗑️</button>
+          </div>
+        </div>
+
+        <div class="card-content">
+          <div class="status-row">
+            <span class="status-badge" [ngClass]="getStatusClass(printer.status)">
+              {{ printer.status | titlecase }}
+            </span>
+            <span class="last-seen" *ngIf="printer.lastSeen">
+              Last seen: {{ printer.lastSeen | date:'short' }}
+            </span>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-item">
+              <strong>Model:</strong> {{ printer.model }}
+            </div>
+            <div class="info-item">
+              <strong>Location:</strong> {{ printer.location }}
+            </div>
+            <div class="info-item">
+              <strong>IP Address:</strong> {{ printer.ipAddress }}
+            </div>
+            <div class="info-item">
+              <strong>SNMP:</strong> {{ printer.snmpCommunity || 'public' }}
+            </div>
+          </div>
+
+          <div class="metrics" *ngIf="printer.status === 'online'">
+            <div class="metric" *ngIf="printer.tonerLevel !== undefined">
+              <label>Toner Level:</label>
+              <div class="progress-bar">
+                <div class="progress" [style.width.%]="printer.tonerLevel"></div>
+              </div>
+              <span>{{ printer.tonerLevel }}%</span>
+            </div>
+
+            <div class="metric" *ngIf="printer.totalPages">
+              <label>Total Pages:</label>
+              <span>{{ printer.totalPages | number }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-printers" *ngIf="printers.length === 0 && !isLoading">
+      <p>No printers found. Add your first printer to get started!</p>
+    </div>
+  </div>
+</div>

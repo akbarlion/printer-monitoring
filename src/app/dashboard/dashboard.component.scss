@@ -1,0 +1,285 @@
+.dashboard-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  
+  .stat-icon {
+    font-size: 2rem;
+  }
+  
+  .stat-info {
+    h3 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    
+    p {
+      margin: 5px 0 0 0;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  }
+  
+  &.total { border-left: 4px solid #007bff; }
+  &.online { border-left: 4px solid #28a745; }
+  &.offline { border-left: 4px solid #dc3545; }
+  &.warning { border-left: 4px solid #ffc107; }
+}
+
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 30px;
+}
+
+.dashboard-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  
+  h2 {
+    margin: 0;
+    color: #333;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  
+  .btn-link {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+    
+    &:hover {
+      color: #0056b3;
+    }
+  }
+  
+  .btn-refresh {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    
+    &:hover {
+      background: #218838;
+    }
+  }
+}
+
+.alerts-list {
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    
+    .alert-icon {
+      font-size: 1.2rem;
+    }
+    
+    .alert-content {
+      flex: 1;
+      
+      h4 {
+        margin: 0 0 5px 0;
+        font-size: 1rem;
+      }
+      
+      p {
+        margin: 0 0 5px 0;
+        color: #666;
+        font-size: 0.9rem;
+      }
+      
+      small {
+        color: #999;
+        font-size: 0.8rem;
+      }
+    }
+    
+    &.severity-high {
+      background: #f8d7da;
+      border-left: 4px solid #dc3545;
+    }
+    
+    &.severity-medium {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+    }
+    
+    &.severity-low {
+      background: #d1ecf1;
+      border-left: 4px solid #17a2b8;
+    }
+  }
+}
+
+.printers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+}
+
+.printer-card {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 15px;
+  
+  .printer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    
+    h4 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+  }
+  
+  .printer-info {
+    margin-bottom: 15px;
+    
+    p {
+      margin: 5px 0;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  }
+  
+  .printer-stats {
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      
+      .progress-bar {
+        flex: 1;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        
+        .progress {
+          height: 100%;
+          background: #28a745;
+          transition: width 0.3s ease;
+        }
+      }
+    }
+  }
+  
+  &.status-online {
+    border-left: 4px solid #28a745;
+    
+    .status-badge {
+      background: #d4edda;
+      color: #155724;
+    }
+  }
+  
+  &.status-offline {
+    border-left: 4px solid #dc3545;
+    
+    .status-badge {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  }
+  
+  &.status-warning {
+    border-left: 4px solid #ffc107;
+    
+    .status-badge {
+      background: #fff3cd;
+      color: #856404;
+    }
+  }
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  
+  p {
+    margin: 0 0 15px 0;
+    font-style: italic;
+  }
+  
+  .btn-add-printer {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    
+    &:hover {
+      background: #0056b3;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .printers-grid {
+    grid-template-columns: 1fr;
+  }
+}
