@@ -36,31 +36,46 @@
         </div>
 
         <div class="form-group">
-          <label>Location *</label>
-          <input type="text" formControlName="location" placeholder="Office Floor 2">
+          <label>Printer Type *</label>
+          <p-dropdown class="p-fluid field" [options]="printerTypeOptions" formControlName="printerType"
+            placeholder="Select Type" optionLabel="label" optionValue="value">
+          </p-dropdown>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
+          <label>Location *</label>
+          <input type="text" formControlName="location" placeholder="Office Floor 2">
+        </div>
+        <div class="form-group">
           <label>SNMP Community</label>
           <input type="text" formControlName="snmpCommunity" placeholder="public">
         </div>
+      </div>
 
+      <div class="form-row">
         <div class="form-group">
-          <button pButton pRipple type="button" class="btn-test" (click)="testConnection()"
+          <button pButton pRipple type="button" class="btn-test full-width" (click)="testConnection()"
             [disabled]="testingConnection">
             {{ testingConnection ? 'Testing...' : 'Test Connection' }}
           </button>
         </div>
+
+        <div class="form-group button-group">
+          <button pButton pRipple type="submit" class="btn-primary" [disabled]="!addPrinterForm.valid || isLoading">
+            {{ isLoading ? 'Adding...' : 'Add Printer' }}
+          </button>
+          <button pButton pRipple type="button" class="btn-secondary" (click)="toggleAddForm()">Cancel</button>
+        </div>
       </div>
 
-      <div class="form-actions">
+      <!-- <div class="form-actions">
         <button pButton pRipple type="submit" class="btn-primary" [disabled]="!addPrinterForm.valid || isLoading">
           {{ isLoading ? 'Adding...' : 'Add Printer' }}
         </button>
         <button pButton pRipple type="button" class="btn-secondary" (click)="toggleAddForm()">Cancel</button>
-      </div>
+      </div> -->
     </form>
   </div>
 
@@ -103,21 +118,58 @@
               <strong>IP Address:</strong> {{ printer.ipAddress }}
             </div>
             <div class="info-item">
+              <strong>Type:</strong> {{ printer.printerType === 'laser' ? '🖤 Laser (Toner)' : '🎨 Inkjet (Ink)' }}
+            </div>
+            <div class="info-item">
               <strong>SNMP:</strong> {{ printer.snmpCommunity || 'public' }}
             </div>
           </div>
 
           <div class="metrics" *ngIf="printer.status === 'online'">
-            <div class="metric" *ngIf="printer.tonerLevel !== undefined">
+            <div class="metric" *ngIf="printer.printerType === 'laser' && printer.tonerLevel !== undefined">
               <label>Toner Level:</label>
               <div class="progress-bar">
-                <div class="progress" [style.width.%]="printer.tonerLevel"></div>
+                <div class="progress toner" [style.width.%]="printer.tonerLevel"></div>
               </div>
               <span>{{ printer.tonerLevel }}%</span>
             </div>
 
+            <div class="ink-levels" *ngIf="printer.printerType === 'inkjet' && printer.inkLevels">
+              <label>Ink Levels:</label>
+              <div class="ink-bars">
+                <div class="ink-bar" *ngIf="printer.inkLevels.cyan !== undefined">
+                  <span class="ink-label">C</span>
+                  <div class="progress-bar small">
+                    <div class="progress cyan" [style.width.%]="printer.inkLevels.cyan"></div>
+                  </div>
+                  <span class="ink-percent">{{ printer.inkLevels.cyan }}%</span>
+                </div>
+                <div class="ink-bar" *ngIf="printer.inkLevels.magenta !== undefined">
+                  <span class="ink-label">M</span>
+                  <div class="progress-bar small">
+                    <div class="progress magenta" [style.width.%]="printer.inkLevels.magenta"></div>
+                  </div>
+                  <span class="ink-percent">{{ printer.inkLevels.magenta }}%</span>
+                </div>
+                <div class="ink-bar" *ngIf="printer.inkLevels.yellow !== undefined">
+                  <span class="ink-label">Y</span>
+                  <div class="progress-bar small">
+                    <div class="progress yellow" [style.width.%]="printer.inkLevels.yellow"></div>
+                  </div>
+                  <span class="ink-percent">{{ printer.inkLevels.yellow }}%</span>
+                </div>
+                <div class="ink-bar" *ngIf="printer.inkLevels.black !== undefined">
+                  <span class="ink-label">K</span>
+                  <div class="progress-bar small">
+                    <div class="progress black" [style.width.%]="printer.inkLevels.black"></div>
+                  </div>
+                  <span class="ink-percent">{{ printer.inkLevels.black }}%</span>
+                </div>
+              </div>
+            </div>
+
             <div class="metric" *ngIf="printer.totalPages">
-              <label>Total Pages:</label>
+              <label>📄 Total Pages:</label>
               <span>{{ printer.totalPages | number }}</span>
             </div>
           </div>

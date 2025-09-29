@@ -15,17 +15,14 @@ export class AuthService {
   private refreshToken: string;
 
   constructor(private http: HttpClient) {
-    // Load tokens from localStorage
     this.accessToken = localStorage.getItem('accessToken') || '';
     this.refreshToken = localStorage.getItem('refreshToken') || '';
 
-    // Load user from localStorage
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       this.currentUserSubject.next(JSON.parse(savedUser));
     }
 
-    // Auto refresh if we have refresh token but no access token
     if (this.refreshToken && !this.accessToken) {
       this.refreshAccessToken().subscribe({
         next: () => {
@@ -43,24 +40,20 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/login`, credentials)
       .pipe(
         tap((response: any) => {
-          console.log('Login response:', response);
           this.accessToken = response.accessToken;
           this.refreshToken = response.refreshToken;
 
-          // Store tokens in localStorage
           localStorage.setItem('accessToken', response.accessToken);
           localStorage.setItem('refreshToken', response.refreshToken);
           localStorage.setItem('currentUser', JSON.stringify(response.user));
 
           this.currentUserSubject.next(response.user);
-          console.log('Tokens stored in localStorage');
         })
       );
   }
 
   refreshAccessToken(): Observable<any> {
     const refreshToken = localStorage.getItem('refreshToken');
-    console.log('Refreshing with token:', refreshToken);
 
     if (!refreshToken) {
       return throwError(() => new Error('No refresh token'));
@@ -69,15 +62,11 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/refresh`, { refreshToken })
       .pipe(
         tap((response: any) => {
-          console.log('Refresh response:', response);
           this.accessToken = response.accessToken;
           this.refreshToken = response.refreshToken;
 
-          // Update tokens in localStorage
           localStorage.setItem('accessToken', response.accessToken);
           localStorage.setItem('refreshToken', response.refreshToken);
-
-          console.log('New tokens stored in localStorage');
         }),
         catchError((error) => {
           console.error('Refresh error:', error);
@@ -109,10 +98,23 @@ export class AuthService {
     return !!this.accessToken || !!localStorage.getItem('refreshToken');
   }
 
+  isTokenExpired(): boolean {
+    const token = this.getAccessToken();
+    if (!token) return true;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      return payload.exp < (currentTime + 300);
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return true;
+    }
+  }
+
   getAccessToken(): string {
-    // Always get from localStorage to ensure persistence
     const token = localStorage.getItem('accessToken') || this.accessToken;
-    console.log('Getting access token:', token);
     return token;
   }
 

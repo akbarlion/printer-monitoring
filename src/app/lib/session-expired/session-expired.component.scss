@@ -1,0 +1,96 @@
+.session-expired-dialog {
+  text-align: center;
+  padding: 1.5rem;
+  max-width: 400px;
+}
+
+.dialog-icon {
+  margin-bottom: 1.5rem;
+
+  i {
+    animation: pulse 2s infinite;
+  }
+}
+
+.dialog-content {
+  margin-bottom: 2rem;
+
+  h3 {
+    color: #333;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  p {
+    color: #666;
+    line-height: 1.6;
+    margin: 0;
+  }
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+
+  button {
+    min-width: 140px;
+    min-height: 40px !important;
+    padding: 10px 20px !important;
+    font-size: 14px !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    
+    &:first-child {
+      background: #28a745 !important;
+      border-color: #28a745 !important;
+      color: white !important;
+
+      &:hover {
+        background: #218838 !important;
+        border-color: #1e7e34 !important;
+      }
+    }
+
+    &:last-child {
+      background: #007bff !important;
+      border-color: #007bff !important;
+      color: white !important;
+
+      &:hover {
+        background: #0056b3 !important;
+        border-color: #004085 !important;
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .session-expired-dialog {
+    padding: 1rem;
+  }
+
+  .dialog-actions {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+}

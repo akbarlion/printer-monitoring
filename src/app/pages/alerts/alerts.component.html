@@ -47,9 +47,9 @@
           <th pSortableColumn="printerName">Printer <p-sortIcon field="printerName"></p-sortIcon></th>
           <th pSortableColumn="alertType">Type <p-sortIcon field="alertType"></p-sortIcon></th>
           <th>Message</th>
-          <th pSortableColumn="timestamp">Time <p-sortIcon field="timestamp"></p-sortIcon></th>
+          <th pSortableColumn="createdAt">Time <p-sortIcon field="createdAt"></p-sortIcon></th>
           <th>Status</th>
-          <th style="width: 8rem">Actions</th>
+          <th style="width: 12rem">Actions</th>
         </tr>
       </ng-template>
 
@@ -73,21 +73,21 @@
             <span class="alert-message">{{ alert.message }}</span>
           </td>
           <td>
-            <span class="alert-time">{{ alert.timestamp | date:'short' }}</span>
+            <span class="alert-time">{{ alert.createdAt | date:'short' }}</span>
           </td>
           <td>
-            <p-tag [value]="alert.isAcknowledged ? 'Read' : 'Unread'"
-              [severity]="alert.isAcknowledged ? 'success' : 'warning'">
+            <p-tag [value]="alert.isAcknowledged === 1 ? 'Read' : 'Unread'"
+              [severity]="alert.isAcknowledged === 1 ? 'success' : 'warning'">
             </p-tag>
           </td>
           <td>
             <div class="action-buttons">
               <button 
-                *ngIf="!alert.isAcknowledged"
+                *ngIf="alert.isAcknowledged === 0"
                 pButton 
                 pRipple
                 icon="pi pi-check" 
-                class="p-button-sm p-button-success"
+                class="p-button-success mr-1"
                 (click)="acknowledgeAlert(alert)"
                 pTooltip="Mark as Read">
               </button>
@@ -96,7 +96,7 @@
                 pButton 
                 pRipple
                 icon="pi pi-eye" 
-                class="p-button-sm p-button-info"
+                class="p-button-info mr-1"
                 (click)="viewAlertDetails(alert)"
                 pTooltip="View Details">
               </button>
@@ -105,7 +105,7 @@
                 pButton 
                 pRipple
                 icon="pi pi-trash" 
-                class="p-button-sm p-button-danger"
+                class="p-button-danger"
                 (click)="deleteAlert(alert)"
                 pTooltip="Delete Alert">
               </button>

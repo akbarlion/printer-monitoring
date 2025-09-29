@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { PrinterService } from '../services/printer.service';
-import { PrinterAlert } from '../interfaces/printer.interface';
+import { PrinterService } from '../../services/printer.service';
+import { PrinterAlert } from '../../interfaces/printer.interface';
 
 @Component({
   selector: 'app-alerts',
@@ -11,25 +11,25 @@ export class AlertsComponent implements OnInit {
   alerts: PrinterAlert[] = [];
   filteredAlerts: PrinterAlert[] = [];
   isLoading = false;
-  
+
   // Filter options
   selectedSeverity: string | null = null;
   selectedStatus: string | null = null;
   searchText = '';
-  
+
   severityOptions = [
     { label: 'Critical', value: 'critical' },
     { label: 'High', value: 'high' },
     { label: 'Medium', value: 'medium' },
     { label: 'Low', value: 'low' }
   ];
-  
+
   statusOptions = [
     { label: 'Unread', value: 'unread' },
     { label: 'Read', value: 'read' }
   ];
 
-  constructor(private printerService: PrinterService) {}
+  constructor(private printerService: PrinterService) { }
 
   ngOnInit(): void {
     this.loadAlerts();
@@ -38,8 +38,8 @@ export class AlertsComponent implements OnInit {
   loadAlerts(): void {
     this.isLoading = true;
     this.printerService.getPrinterAlerts().subscribe({
-      next: (alerts) => {
-        this.alerts = alerts;
+      next: (response: any) => {
+        this.alerts = response.data || response;
         this.filterAlerts();
         this.isLoading = false;
       },
@@ -52,35 +52,35 @@ export class AlertsComponent implements OnInit {
 
   filterAlerts(): void {
     let filtered = [...this.alerts];
-    
+
     // Filter by severity
     if (this.selectedSeverity) {
       filtered = filtered.filter(alert => alert.severity === this.selectedSeverity);
     }
-    
+
     // Filter by status
     if (this.selectedStatus) {
       const isRead = this.selectedStatus === 'read';
-      filtered = filtered.filter(alert => alert.isAcknowledged === isRead);
+      filtered = filtered.filter(alert => (alert.isAcknowledged === 1) === isRead);
     }
-    
+
     // Filter by search text
     if (this.searchText) {
       const searchLower = this.searchText.toLowerCase();
-      filtered = filtered.filter(alert => 
+      filtered = filtered.filter(alert =>
         alert.printerName.toLowerCase().includes(searchLower) ||
         alert.message.toLowerCase().includes(searchLower)
       );
     }
-    
+
     this.filteredAlerts = filtered;
   }
 
   acknowledgeAlert(alert: PrinterAlert): void {
     this.printerService.acknowledgeAlert(alert.id).subscribe({
       next: () => {
-        alert.isAcknowledged = true;
-        alert.acknowledgedAt = new Date();
+        alert.isAcknowledged = 1;
+        alert.acknowledgedAt = new Date().toISOString();
         this.filterAlerts();
       },
       error: (error) => {
@@ -90,8 +90,8 @@ export class AlertsComponent implements OnInit {
   }
 
   markAllAsRead(): void {
-    const unreadAlerts = this.alerts.filter(alert => !alert.isAcknowledged);
-    
+    const unreadAlerts = this.alerts.filter(alert => alert.isAcknowledged === 0);
+
     unreadAlerts.forEach(alert => {
       this.acknowledgeAlert(alert);
     });
@@ -141,13 +141,13 @@ export class AlertsComponent implements OnInit {
   }
 
   getAlertRowClass(alert: PrinterAlert): string {
-    if (!alert.isAcknowledged) {
+    if (alert.isAcknowledged === 0) {
       return 'unread-alert';
     }
     return '';
   }
 
   get hasUnreadAlerts(): boolean {
-    return this.alerts.some(alert => !alert.isAcknowledged);
+    return this.alerts.some(alert => alert.isAcknowledged === 0);
   }
 }

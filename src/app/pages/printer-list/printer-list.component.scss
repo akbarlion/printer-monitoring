@@ -52,10 +52,14 @@
     background: #17a2b8;
     color: white;
     border: none;
-    padding: 8px 16px;
+    padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
+
+    &.full-width {
+        width: 100%;
+    }
 
     &:hover {
         background: #138496;
@@ -108,6 +112,14 @@
     display: flex;
     flex-direction: column;
 
+    &.button-group {
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+    }
+
+
+
     label {
         margin-bottom: 5px;
         font-weight: 500;
@@ -142,6 +154,13 @@
     display: flex;
     gap: 10px;
     margin-top: 25px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-direction: row;
 }
 
 .printers-grid {
@@ -277,16 +296,106 @@
         border-radius: 4px;
         overflow: hidden;
 
+        &.small {
+            height: 6px;
+        }
+
         .progress {
             height: 100%;
             background: #28a745;
             transition: width 0.3s ease;
+
+            &.toner {
+                background: #333;
+            }
+
+            &.cyan {
+                background: #00bcd4;
+            }
+
+            &.magenta {
+                background: #e91e63;
+            }
+
+            &.yellow {
+                background: #ffeb3b;
+            }
+
+            &.black {
+                background: #424242;
+            }
         }
     }
 
     span {
         font-size: 0.9rem;
         font-weight: 500;
+    }
+}
+
+.ink-levels {
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+
+    label {
+        font-size: 0.9rem;
+        color: #555;
+        margin-bottom: 10px;
+        display: block;
+    }
+}
+
+.ink-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ink-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .ink-label {
+        font-weight: bold;
+        font-size: 0.8rem;
+        min-width: 15px;
+        text-align: center;
+    }
+
+    .progress-bar {
+        flex: 1;
+        height: 6px;
+        background: #e9ecef;
+        border-radius: 3px;
+        overflow: hidden;
+        
+        .progress {
+            height: 100%;
+            transition: width 0.3s ease;
+            
+            &.cyan {
+                background: #00bcd4;
+            }
+            
+            &.magenta {
+                background: #e91e63;
+            }
+            
+            &.yellow {
+                background: #ffeb3b;
+            }
+            
+            &.black {
+                background: #424242;
+            }
+        }
+    }
+
+    .ink-percent {
+        font-size: 0.8rem;
+        min-width: 35px;
+        text-align: right;
     }
 }
 
@@ -319,5 +428,22 @@
         flex-direction: column;
         gap: 15px;
         align-items: stretch;
+    }
+
+    .ink-bars {
+        gap: 6px;
+    }
+
+    .ink-bar {
+        gap: 6px;
+
+        .ink-label {
+            min-width: 12px;
+        }
+
+        .ink-percent {
+            min-width: 30px;
+            font-size: 0.75rem;
+        }
     }
 }

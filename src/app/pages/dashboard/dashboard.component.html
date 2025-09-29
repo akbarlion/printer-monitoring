@@ -32,6 +32,22 @@
         <p>Warning</p>
       </div>
     </div>
+
+    <div class="stat-card laser">
+      <div class="stat-icon">🖤</div>
+      <div class="stat-info">
+        <h3>{{ dashboardStats.laser }}</h3>
+        <p>Laser (Toner)</p>
+      </div>
+    </div>
+
+    <div class="stat-card inkjet">
+      <div class="stat-icon">🎨</div>
+      <div class="stat-info">
+        <h3>{{ dashboardStats.inkjet }}</h3>
+        <p>Inkjet (Ink)</p>
+      </div>
+    </div>
   </div>
 
   <!-- Main Content -->
@@ -49,7 +65,7 @@
           <div class="alert-content">
             <h4>{{ alert.printerName }}</h4>
             <p>{{ alert.message }}</p>
-            <small>{{ alert.timestamp | date:'short' }}</small>
+            <small>{{ alert.createdAt | date:'short' }}</small>
           </div>
         </div>
       </div>
@@ -67,7 +83,7 @@
         <h2>Printer Status</h2>
         <div class="header-actions">
           <button pButton pRipple class="btn-refresh" (click)="refreshNow()" title="Refresh SNMP Data">
-            🔄 Refresh
+            Refresh
           </button>
           <button pButton pRipple class="btn-link" routerLink="/printers">View All</button>
         </div>
@@ -86,12 +102,33 @@
             <p><strong>IP:</strong> {{ printer.ipAddress }}</p>
           </div>
           <div class="printer-stats" *ngIf="printer.status === 'online'">
-            <div class="stat">
+            <div class="stat" *ngIf="printer.printerType === 'laser'">
               <span>Toner:</span>
               <div class="progress-bar">
-                <div class="progress" [style.width.%]="printer.tonerLevel || 0"></div>
+                <div class="progress toner" [style.width.%]="printer.tonerLevel || 0"></div>
               </div>
               <span>{{ printer.tonerLevel || 0 }}%</span>
+            </div>
+            <div class="ink-stats" *ngIf="printer.printerType === 'inkjet' && printer.inkLevels">
+              <span>Ink:</span>
+              <div class="ink-grid">
+                <div class="mini-ink" *ngIf="printer.inkLevels.cyan !== undefined">
+                  <div class="mini-bar cyan" [style.--width]="printer.inkLevels.cyan + '%'"></div>
+                  <small>C: {{ printer.inkLevels.cyan }}%</small>
+                </div>
+                <div class="mini-ink" *ngIf="printer.inkLevels.magenta !== undefined">
+                  <div class="mini-bar magenta" [style.--width]="printer.inkLevels.magenta + '%'"></div>
+                  <small>M: {{ printer.inkLevels.magenta }}%</small>
+                </div>
+                <div class="mini-ink" *ngIf="printer.inkLevels.yellow !== undefined">
+                  <div class="mini-bar yellow" [style.--width]="printer.inkLevels.yellow + '%'"></div>
+                  <small>Y: {{ printer.inkLevels.yellow }}%</small>
+                </div>
+                <div class="mini-ink" *ngIf="printer.inkLevels.black !== undefined">
+                  <div class="mini-bar black" [style.--width]="printer.inkLevels.black + '%'"></div>
+                  <small>K: {{ printer.inkLevels.black }}%</small>
+                </div>
+              </div>
             </div>
           </div>
         </div>

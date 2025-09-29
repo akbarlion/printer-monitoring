@@ -3,13 +3,19 @@ import { HttpInterceptor, HttpRequest, HttpHandler, HttpErrorResponse } from '@a
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, switchMap, filter, take } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { SessionDialogService } from '../services/session-dialog.service';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private sessionDialog: SessionDialogService,
+    private router: Router
+  ) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<any> {
     // Skip auth for auth endpoints
@@ -55,7 +61,29 @@ export class AuthInterceptor implements HttpInterceptor {
         }),
         catchError((error) => {
           this.isRefreshing = false;
-          this.authService.logout().subscribe();
+          
+          // Show session expired dialog
+          this.sessionDialog.showSessionExpiredDialog().subscribe({
+            next: (result) => {
+              if (result === 'extend') {
+                // Try refresh again
+                this.authService.refreshAccessToken().subscribe({
+                  next: () => {
+                    window.location.reload();
+                  },
+                  error: () => {
+                    this.authService.logout().subscribe();
+                    this.router.navigate(['/login']);
+                  }
+                });
+              } else {
+                // Login again
+                this.authService.logout().subscribe();
+                this.router.navigate(['/login']);
+              }
+            }
+          });
+          
           return throwError(() => error);
         })
       );

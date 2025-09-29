@@ -42,6 +42,8 @@
   &.online { border-left: 4px solid #28a745; }
   &.offline { border-left: 4px solid #dc3545; }
   &.warning { border-left: 4px solid #ffc107; }
+  &.laser { border-left: 4px solid #333; }
+  &.inkjet { border-left: 4px solid #e91e63; }
 }
 
 .dashboard-content {
@@ -210,6 +212,68 @@
           height: 100%;
           background: #28a745;
           transition: width 0.3s ease;
+          
+          &.toner {
+            background: #333;
+          }
+        }
+      }
+    }
+    
+    .ink-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 0.9rem;
+      
+      .ink-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      
+      .mini-ink {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        
+        .mini-bar {
+          height: 4px;
+          background: #e9ecef;
+          border-radius: 2px;
+          overflow: hidden;
+          position: relative;
+          
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: var(--width, 0%);
+            border-radius: 2px;
+          }
+          
+          &.cyan::before {
+            background: #00bcd4;
+          }
+          
+          &.magenta::before {
+            background: #e91e63;
+          }
+          
+          &.yellow::before {
+            background: #ffeb3b;
+          }
+          
+          &.black::before {
+            background: #424242;
+          }
+        }
+        
+        small {
+          font-size: 0.75rem;
+          color: #666;
         }
       }
     }

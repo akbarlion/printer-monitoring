@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { PrinterService } from '../services/printer.service';
-import { SnmpService } from '../services/snmp.service';
-import { Printer } from '../interfaces/printer.interface';
+import { PrinterService } from '../../services/printer.service';
+import { SnmpService } from '../../services/snmp.service';
+import { Printer } from '../../interfaces/printer.interface';
 
 @Component({
   selector: 'app-printer-list',
@@ -16,6 +16,11 @@ export class PrinterListComponent implements OnInit {
   isLoading = false;
   testingConnection = false;
 
+  printerTypeOptions = [
+    { label: 'Laser Printer (Toner)', value: 'laser' },
+    { label: 'Inkjet Printer (Ink)', value: 'inkjet' }
+  ];
+
   constructor(
     private fb: FormBuilder,
     private printerService: PrinterService,
@@ -25,6 +30,7 @@ export class PrinterListComponent implements OnInit {
       name: ['', [Validators.required, Validators.minLength(3)]],
       ipAddress: ['', [Validators.required, Validators.pattern(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)]],
       model: ['', Validators.required],
+      printerType: ['laser', Validators.required],
       location: ['', Validators.required],
       snmpCommunity: ['public', Validators.required]
     });
@@ -38,7 +44,20 @@ export class PrinterListComponent implements OnInit {
     this.isLoading = true;
     this.printerService.getAllPrinters().subscribe({
       next: (printers) => {
-        this.printers = printers;
+        this.printers = printers.map(printer => {
+          const metrics = printer.PrinterMetrics?.[0];
+          return {
+            ...printer,
+            printerType: metrics?.printerType || 'laser',
+            inkLevels: metrics?.printerType === 'inkjet' ? {
+              cyan: metrics.cyanLevel,
+              magenta: metrics.magentaLevel,
+              yellow: metrics.yellowLevel,
+              black: metrics.blackLevel
+            } : undefined,
+            tonerLevel: metrics?.tonerLevel
+          };
+        });
         this.isLoading = false;
       },
       error: (error) => {
@@ -60,7 +79,7 @@ export class PrinterListComponent implements OnInit {
       this.testingConnection = true;
       const ip = this.addPrinterForm.get('ipAddress')?.value;
       const community = this.addPrinterForm.get('snmpCommunity')?.value;
-      
+
       this.snmpService.testConnection(ip, community).subscribe({
         next: (result) => {
           alert(result.success ? 'Connection successful!' : `Connection failed: ${result.message}`);
@@ -78,7 +97,7 @@ export class PrinterListComponent implements OnInit {
     if (this.addPrinterForm.valid) {
       this.isLoading = true;
       const formData = this.addPrinterForm.value;
-      
+
       // Test SNMP connection first to determine initial status
       this.snmpService.testConnection(formData.ipAddress, formData.snmpCommunity).subscribe({
         next: (testResult) => {
@@ -148,12 +167,12 @@ export class PrinterListComponent implements OnInit {
 
   refreshPrinterStatus(printer: Printer): void {
     if (!printer.ipAddress) return;
-    
+
     this.snmpService.testConnection(printer.ipAddress, printer.snmpCommunity || 'public').subscribe({
       next: (result) => {
         const newStatus = result.success ? 'online' : 'offline';
         const updateData = { status: newStatus as 'online' | 'offline' };
-        
+
         this.printerService.updatePrinter(printer.id, updateData).subscribe({
           next: (updatedPrinter) => {
             const index = this.printers.findIndex(p => p.id === printer.id);

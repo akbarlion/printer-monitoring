@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { PrinterService } from '../services/printer.service';
-import { Printer, PrinterAlert } from '../interfaces/printer.interface';
+import { PrinterService } from '../../services/printer.service';
+import { Printer, PrinterAlert } from '../../interfaces/printer.interface';
 import { interval, Subscription } from 'rxjs';
 
 @Component({
@@ -15,12 +15,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     total: 0,
     online: 0,
     offline: 0,
-    warning: 0
+    warning: 0,
+    laser: 0,
+    inkjet: 0
   };
-  
+
   private refreshSubscription?: Subscription;
 
-  constructor(private printerService: PrinterService) {}
+  constructor(private printerService: PrinterService) { }
 
   ngOnInit(): void {
     this.loadDashboardData();
@@ -37,20 +39,33 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Load printers directly (skip SNMP for now)
     this.printerService.getAllPrinters().subscribe({
       next: (printers) => {
-        this.printers = printers;
+        this.printers = printers.map(printer => {
+          const metrics = printer.PrinterMetrics?.[0];
+          return {
+            ...printer,
+            printerType: metrics?.printerType || 'laser',
+            inkLevels: metrics?.printerType === 'inkjet' ? {
+              cyan: metrics.cyanLevel,
+              magenta: metrics.magentaLevel,
+              yellow: metrics.yellowLevel,
+              black: metrics.blackLevel
+            } : undefined,
+            tonerLevel: metrics?.tonerLevel
+          };
+        });
         this.updateStats();
       },
       error: (error) => {
         console.error('Error loading printers:', error);
-        // Set empty array if API fails
         this.printers = [];
         this.updateStats();
       }
     });
 
     this.printerService.getPrinterAlerts().subscribe({
-      next: (alerts) => {
-        this.alerts = alerts.filter(alert => !alert.isAcknowledged).slice(0, 5);
+      next: (response: any) => {
+        const alerts = response.data || response;
+        this.alerts = alerts.filter((alert: PrinterAlert) => alert.isAcknowledged === 0).slice(0, 5);
       },
       error: (error) => {
         console.error('Error loading alerts:', error);
@@ -64,6 +79,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.dashboardStats.online = this.printers.filter(p => p.status === 'online').length;
     this.dashboardStats.offline = this.printers.filter(p => p.status === 'offline').length;
     this.dashboardStats.warning = this.printers.filter(p => p.status === 'warning').length;
+    this.dashboardStats.laser = this.printers.filter(p => p.printerType === 'laser').length;
+    this.dashboardStats.inkjet = this.printers.filter(p => p.printerType === 'inkjet').length;
   }
 
   private startAutoRefresh(): void {
