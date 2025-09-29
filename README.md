@@ -48,7 +48,7 @@ A comprehensive web application for monitoring and managing network printers usi
 
 ```bash
 # Clone repository
-git clone <repository-url>
+git clone https://github.com/akbarlion/printer-monitoring.git
 cd printer-monitoring
 
 # Install dependencies
