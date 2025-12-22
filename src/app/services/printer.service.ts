@@ -20,6 +20,19 @@ export class PrinterService {
     return this.http.get<Printer[]>(this.apiUrl);
   }
 
+  // getAllPrinters() {
+  //   return new Promise<any>((resolve, reject) => {
+  //     return this.http.get<any>(this.apiUrl).subscribe({
+  //       next: (data) => {
+  //         resolve(data);
+  //       },
+  //       error: (error) => {
+  //         reject(error);
+  //       }
+  //     });
+  //   })
+  // }
+
   getPrinter(id: string): Observable<Printer> {
     return this.http.get<Printer>(`${this.apiUrl}/${id}`);
   }

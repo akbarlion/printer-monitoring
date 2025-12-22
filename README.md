@@ -9,6 +9,8 @@ A comprehensive web application for monitoring and managing network printers usi
 - **JWT Token** authentication with refresh tokens
 - **Role-based** access control
 - **Auto-refresh** tokens on page reload
+- **Secure token storage** (memory-only for access tokens)
+- **Token expiry management** with automatic refresh
 
 ### Printer Management
 - **Real-time monitoring** via SNMP
@@ -104,11 +106,14 @@ src/
 ### Environment Variables
 
 ```typescript
-// src/environments/environment.ts
+// src/environments/environment.development.ts
 export const environment = {
-  production: false,
-  api_printer: 'http://localhost:3000/api/',
-  snmp_endpoint: 'http://localhost:3000/api/snmp/'
+  api_printer: 'http://localhost/api-printer/api/',
+};
+
+// src/environments/environment.ts (Production)
+export const environment = {
+  production: true,
 };
 ```
 
@@ -157,11 +162,26 @@ export const environment = {
 
 ## Security Features
 
-- **JWT Authentication** with access/refresh tokens
-- **HTTP Interceptors** for automatic token handling
+### Authentication Security
+- **JWT Authentication** with short-lived access tokens (15 minutes)
+- **Refresh Token Rotation** for enhanced security
+- **Memory-only Storage** for access tokens (not localStorage)
+- **Automatic Token Refresh** before expiration
+- **HTTP Interceptors** for seamless token handling
+
+### Application Security
 - **Route Guards** for protected pages
 - **CSRF Protection** via Angular built-ins
 - **Input Validation** on all forms
+- **XSS Protection** through Angular sanitization
+- **Secure Headers** implementation ready
+
+### Production Security Requirements
+- **HTTPS Mandatory** - All production traffic must be encrypted
+- **Content Security Policy (CSP)** headers
+- **Secure Cookie Configuration** for refresh tokens
+- **Rate Limiting** on authentication endpoints
+- **Token Blacklisting** on logout
 
 ## Deployment
 
@@ -173,6 +193,31 @@ ng build --configuration production
 
 # Files will be in dist/ directory
 # Deploy to web server (Apache, Nginx, etc.)
+```
+
+### Security Configuration for Production
+
+#### HTTPS Setup
+```bash
+# Development with SSL
+ng serve --ssl --ssl-key path/to/key.pem --ssl-cert path/to/cert.pem
+```
+
+#### Content Security Policy
+Add to `index.html`:
+```html
+<meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+```
+
+#### Nginx Security Headers
+```nginx
+server {
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options DENY;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+}
 ```
 
 ### Docker Deployment
@@ -201,6 +246,28 @@ EXPOSE 80
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Security Best Practices
+
+### Development
+- Never commit sensitive data (tokens, passwords, API keys)
+- Use environment variables for configuration
+- Test authentication flows regularly
+- Monitor browser dev tools for token exposure
+
+### Production
+- **Always use HTTPS** - HTTP is not acceptable for production
+- Implement proper CORS policies
+- Set up rate limiting on authentication endpoints
+- Monitor for suspicious authentication attempts
+- Regular security audits and dependency updates
+
+### Token Management
+- Access tokens: 15 minutes maximum
+- Refresh tokens: 7 days maximum
+- Implement token blacklisting on logout
+- Never store sensitive tokens in localStorage
+- Use secure, HTTP-only cookies when possible
 
 ## Support
 

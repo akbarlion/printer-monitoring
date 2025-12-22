@@ -10,7 +10,8 @@ import { User, LoginCredentials, AuthResponse } from '../interfaces/user.interfa
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
-  private apiUrl = 'http://localhost:3000/api/auth';
+  // private apiUrl = 'http://localhost:3000/api/auth';
+  private apiUrl = 'http://localhost/api-printer/api';
   private accessToken: string;
   private refreshToken: string;
 
@@ -37,7 +38,7 @@ export class AuthService {
   }
 
   login(credentials: LoginCredentials): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, credentials)
+    return this.http.post(`${this.apiUrl}/auth/login`, credentials)
       .pipe(
         tap((response: any) => {
           this.accessToken = response.accessToken;
@@ -59,7 +60,7 @@ export class AuthService {
       return throwError(() => new Error('No refresh token'));
     }
 
-    return this.http.post(`${this.apiUrl}/refresh`, { refreshToken })
+    return this.http.post(`${this.apiUrl}/auth/refresh`, { refreshToken })
       .pipe(
         tap((response: any) => {
           this.accessToken = response.accessToken;
@@ -77,14 +78,14 @@ export class AuthService {
   }
 
   register(userData: { username: string, email: string, password: string, role?: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, userData);
+    return this.http.post(`${this.apiUrl}/auth/register`, userData);
   }
 
   logout(): Observable<any> {
     const refreshToken = localStorage.getItem('refreshToken');
 
     const logoutRequest = refreshToken ?
-      this.http.post(`${this.apiUrl}/logout`, { refreshToken }) :
+      this.http.post(`${this.apiUrl}/auth/logout`, { refreshToken }) :
       new Observable(observer => observer.complete());
 
     return logoutRequest.pipe(
