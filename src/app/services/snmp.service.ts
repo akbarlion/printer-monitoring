@@ -34,7 +34,7 @@ export class SnmpService {
   }
 
   testConnection(ipAddress: string, community: string = 'public'): Observable<{ success: boolean, message: string }> {
-    return this.http.post<{ success: boolean, message: string }>('http://localhost:3000/api/printers/test', {
+    return this.http.post<{ success: boolean, message: string }>('http://localhost/api-printer/api/printers/test', {
       ipAddress,
       community
     });
