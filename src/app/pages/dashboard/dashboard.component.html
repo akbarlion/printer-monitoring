@@ -90,8 +90,11 @@
       </div>
 
       <div class="printers-grid" *ngIf="printers.length > 0; else noPrinters">
+        <!-- Added (click) handler -->
         <div class="printer-card" *ngFor="let printer of printers.slice(0, 6)"
-          [ngClass]="getStatusClass(printer.status)">
+          [ngClass]="getStatusClass(printer.status)"
+          (click)="showPrinterDetails(printer)"
+          style="cursor: pointer;"> 
           <div class="printer-header">
             <h4>{{ printer.name }}</h4>
             <span class="status-badge">{{ printer.status }}</span>
@@ -144,4 +147,127 @@
       </ng-template>
     </div>
   </div>
+
+  <!-- Detailed Printer Dialog -->
+  <p-dialog 
+    [(visible)]="displayDetailDialog" 
+    [header]="selectedPrinter ? selectedPrinter.name : 'Printer Details'" 
+    [modal]="true" 
+    [style]="{width: '50vw'}"
+    [draggable]="false" 
+    [resizable]="false">
+    
+    <div *ngIf="selectedPrinter && selectedPrinter.detailedInfo" class="printer-detail-content">
+      
+      <p-accordion [multiple]="true">
+        <!-- 1. Printer Information (Expanded by default) -->
+        <p-accordionTab header="Printer Information" [selected]="true">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>Product Name</label>
+              <span>{{ selectedPrinter.detailedInfo.productName }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Printer Name</label>
+              <span>{{ selectedPrinter.detailedInfo.printerName }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Model Number</label>
+              <span>{{ selectedPrinter.detailedInfo.modelNumber }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Serial Number</label>
+              <span>{{ selectedPrinter.detailedInfo.serialNumber }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Engine Cycles</label>
+              <span>{{ selectedPrinter.detailedInfo.engineCycles | number }}</span>
+            </div>
+          </div>
+        </p-accordionTab>
+    
+        <!-- 2. Memory Printer -->
+        <p-accordionTab header="Memory Printer">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>On Board Memory</label>
+              <span>{{ selectedPrinter.detailedInfo.memory?.onBoard }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Total Usable RAM</label>
+              <span>{{ selectedPrinter.detailedInfo.memory?.totalUsable }}</span>
+            </div>
+          </div>
+        </p-accordionTab>
+    
+        <!-- 3. Event Log -->
+        <p-accordionTab header="Event Log">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>Entries in Use</label>
+              <span>{{ selectedPrinter.detailedInfo.eventLog?.entriesInUse }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Max Entries</label>
+              <span>{{ selectedPrinter.detailedInfo.eventLog?.maxEntries }}</span>
+            </div>
+          </div>
+        </p-accordionTab>
+    
+        <!-- 4. Paper Trays and Options -->
+        <p-accordionTab header="Paper Trays and Options">
+           <div class="detail-grid">
+            <div class="detail-item">
+              <label>Default Paper Size</label>
+              <span>{{ selectedPrinter.detailedInfo.trays?.defaultPaperSize }}</span>
+            </div>
+             <div class="detail-item">
+              <label>Tray 1 Size</label>
+              <span>{{ selectedPrinter.detailedInfo.trays?.tray1Size }}</span>
+            </div>
+             <div class="detail-item">
+              <label>Tray 1 Type</label>
+              <span>{{ selectedPrinter.detailedInfo.trays?.tray1Type }}</span>
+            </div>
+             <div class="detail-item">
+              <label>Tray 2 Size</label>
+              <span>{{ selectedPrinter.detailedInfo.trays?.tray2Size }}</span>
+            </div>
+             <div class="detail-item">
+              <label>Tray 2 Type</label>
+              <span>{{ selectedPrinter.detailedInfo.trays?.tray2Type }}</span>
+            </div>
+          </div>
+        </p-accordionTab>
+    
+        <!-- 5. Cartridge Information -->
+        <p-accordionTab header="Cartridge Information">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>Supply Level</label>
+              <span [ngClass]="{'status-warning': selectedPrinter.detailedInfo.cartridge?.supplyLevel === 'Low'}">
+                {{ selectedPrinter.detailedInfo.cartridge?.supplyLevel }}
+              </span>
+            </div>
+            <div class="detail-item">
+              <label>Serial Number</label>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.serialNumber }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Pages Printed</label>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.pagesPrinted | number }}</span>
+            </div>
+             <div class="detail-item">
+              <label>First Install Date</label>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.firstInstallDate }}</span>
+            </div>
+             <div class="detail-item">
+              <label>Last Used Date</label>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.lastUsedDate }}</span>
+            </div>
+          </div>
+        </p-accordionTab>
+      </p-accordion>
+    </div>
+  </p-dialog>
 </div>

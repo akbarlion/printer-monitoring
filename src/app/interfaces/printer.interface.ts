@@ -22,6 +22,46 @@ export interface Printer {
   createdAt: string;
   updatedAt: string;
   PrinterMetrics?: PrinterMetrics[];
+  detailedInfo?: PrinterDetailedInfo;
+}
+
+export interface PrinterDetailedInfo {
+  // 1. Printer Information
+  productName?: string;
+  printerName?: string;
+  modelNumber?: string;
+  serialNumber?: string;
+  engineCycles?: number;
+  
+  // 2. Memory Printer
+  memory?: {
+    onBoard: string;
+    totalUsable: string;
+  };
+
+  // 3. Event Log
+  eventLog?: {
+    entriesInUse: number;
+    maxEntries: number;
+  };
+
+  // 4. Paper Trays and Options
+  trays?: {
+    defaultPaperSize: string;
+    tray1Size: string;
+    tray1Type: string;
+    tray2Size: string;
+    tray2Type: string;
+  };
+
+  // 5. Cartridge Information
+  cartridge?: {
+    supplyLevel: string; // e.g. "Order", "Low", "OK"
+    serialNumber: string;
+    pagesPrinted: number;
+    firstInstallDate: string;
+    lastUsedDate: string;
+  };
 }
 
 export interface PrinterMetrics {

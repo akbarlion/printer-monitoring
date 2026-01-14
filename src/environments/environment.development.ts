@@ -1,3 +1,3 @@
 export const environment = {
-    api_printer: 'http://localhost/api-printer/api/',
+    api_printer: '/api-printer/api/',
 };

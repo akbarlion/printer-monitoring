@@ -29,6 +29,8 @@ import { DialogService } from 'primeng/dynamicdialog';
 import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 import { TopbarComponent } from './layout/topbar/topbar.component';
 import { AppLayoutComponent } from './layout/app.layout.component';
+import { AccordionModule } from 'primeng/accordion';
+import { DialogModule } from 'primeng/dialog';
 
 
 @NgModule({
@@ -61,6 +63,8 @@ import { AppLayoutComponent } from './layout/app.layout.component';
     TagModule,
     DynamicDialogModule,
     ConfirmDialogModule,
+    AccordionModule,
+    DialogModule
   ],
   providers: [
     { provide: LocationStrategy, useClass: HashLocationStrategy },

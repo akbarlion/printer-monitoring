@@ -107,4 +107,63 @@ export class DashboardComponent implements OnInit, OnDestroy {
   getSeverityClass(severity: string): string {
     return `severity-${severity}`;
   }
+
+  // --- Dialog & Detailed Info Logic ---
+
+  displayDetailDialog: boolean = false;
+  selectedPrinter: Printer | null = null;
+
+  showPrinterDetails(printer: Printer): void {
+    this.selectedPrinter = { ...printer }; // Create a copy
+
+    // Generate Mock Data if missing (since backend might not provide it yet)
+    if (!this.selectedPrinter.detailedInfo) {
+      this.selectedPrinter.detailedInfo = this.generateMockDetailedInfo(printer);
+    }
+
+    this.displayDetailDialog = true;
+  }
+
+  private generateMockDetailedInfo(printer: Printer): any {
+    const isLaser = printer.printerType === 'laser';
+
+    return {
+      // 1. Printer Information
+      productName: printer.model + (isLaser ? ' LaserJet' : ' OfficeJet'),
+      printerName: printer.name,
+      modelNumber: printer.model.split(' ')[0] + '-X100',
+      serialNumber: 'CN' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+      engineCycles: Math.floor(Math.random() * 50000) + 1000,
+
+      // 2. Memory Printer
+      memory: {
+        onBoard: '512 MB',
+        totalUsable: '480 MB'
+      },
+
+      // 3. Event Log
+      eventLog: {
+        entriesInUse: Math.floor(Math.random() * 50),
+        maxEntries: 500
+      },
+
+      // 4. Paper Trays and Options
+      trays: {
+        defaultPaperSize: 'A4',
+        tray1Size: 'A4',
+        tray1Type: 'Plain',
+        tray2Size: 'Letter',
+        tray2Type: 'Letterhead'
+      },
+
+      // 5. Cartridge Information
+      cartridge: {
+        supplyLevel: (printer.tonerLevel || 80) < 20 ? 'Low' : 'OK',
+        serialNumber: 'CR' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        pagesPrinted: printer.PrinterMetrics?.[0]?.pageCounter || 1200,
+        firstInstallDate: '2025-01-10',
+        lastUsedDate: new Date().toISOString().split('T')[0]
+      }
+    };
+  }
 }
