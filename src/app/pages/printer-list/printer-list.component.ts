@@ -13,6 +13,9 @@ export class PrinterListComponent implements OnInit {
   printers: Printer[] = [];
   showAddForm = false;
   addPrinterForm: FormGroup;
+  // Edit printer state
+  editingPrinterId: string | null = null;
+  editPrinterForm: FormGroup;
   isLoading = false;
   testingConnection = false;
 
@@ -27,6 +30,15 @@ export class PrinterListComponent implements OnInit {
     private snmpService: SnmpService
   ) {
     this.addPrinterForm = this.fb.group({
+      name: ['', [Validators.required, Validators.minLength(3)]],
+      ipAddress: ['', [Validators.required, Validators.pattern(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)]],
+      model: ['', Validators.required],
+      printerType: ['laser', Validators.required],
+      location: ['', Validators.required],
+      snmpCommunity: ['public', Validators.required]
+    });
+
+    this.editPrinterForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3)]],
       ipAddress: ['', [Validators.required, Validators.pattern(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)]],
       model: ['', Validators.required],
@@ -190,6 +202,62 @@ export class PrinterListComponent implements OnInit {
       error: (error) => {
         console.error('SNMP test failed:', error);
         alert('SNMP connection failed');
+      }
+    });
+  }
+
+  // --- Edit printer methods ---
+  openEdit(printer: Printer): void {
+    this.editingPrinterId = printer.id;
+    this.editPrinterForm.reset({
+      name: printer.name,
+      ipAddress: printer.ipAddress,
+      model: printer.model,
+      printerType: printer.printerType || 'laser',
+      location: printer.location,
+      snmpCommunity: printer.snmpCommunity || 'public'
+    });
+  }
+
+  cancelEdit(): void {
+    this.editingPrinterId = null;
+    this.editPrinterForm.reset();
+  }
+
+  saveEdit(): void {
+    if (!this.editPrinterForm.valid || !this.editingPrinterId) return;
+
+    const printer = this.printers.find(p => p.id === this.editingPrinterId);
+    if (!printer) return;
+
+    const formData = this.editPrinterForm.value;
+    const updateData: Partial<Printer> = {
+      name: formData.name,
+      ipAddress: formData.ipAddress,
+      model: formData.model,
+      printerType: formData.printerType,
+      location: formData.location,
+      snmpCommunity: formData.snmpCommunity
+    };
+
+    this.printerService.updatePrinter(printer.id, updateData).subscribe({
+      next: (updated) => {
+        const idx = this.printers.findIndex(p => p.id === printer.id);
+        if (idx !== -1) this.printers[idx] = { ...this.printers[idx], ...updated };
+        this.editingPrinterId = null;
+        // After updating fields, immediately refresh status via SNMP
+        // so a wrong IP will be detected and status updated.
+        try {
+          this.refreshPrinterStatus({ ...this.printers[idx] });
+        } catch (e) {
+          // fallback: just notify
+          console.warn('Auto-refresh status failed:', e);
+        }
+        alert('Printer updated successfully');
+      },
+      error: (err) => {
+        console.error('Error updating printer:', err);
+        alert('Failed to update printer');
       }
     });
   }
