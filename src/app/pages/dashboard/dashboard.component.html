@@ -240,30 +240,38 @@
           </div>
         </p-accordionTab>
     
-        <!-- 5. Cartridge Information -->
-        <p-accordionTab header="Cartridge Information">
+        <!-- 5. Ink/Toner Information -->
+        <p-accordionTab [header]="(selectedPrinter?.printerType === 'inkjet') ? 'Ink Tank Information' : 'Cartridge Information'">
           <div class="detail-grid">
             <div class="detail-item">
               <label>Supply Level</label>
-              <span [ngClass]="{'status-warning': selectedPrinter.detailedInfo.cartridge?.supplyLevel === 'Low'}">
-                {{ selectedPrinter.detailedInfo.cartridge?.supplyLevel }}
+              <span [ngClass]="{'status-warning': selectedPrinter!.detailedInfo.cartridge?.supplyLevel === 'Low'}">
+                {{ selectedPrinter!.detailedInfo.cartridge?.supplyLevel }}
               </span>
             </div>
-            <div class="detail-item">
-              <label>Serial Number</label>
-              <span>{{ selectedPrinter.detailedInfo.cartridge?.serialNumber }}</span>
+            <div class="detail-item" *ngIf="selectedPrinter?.printerType === 'inkjet'">
+              <label>Ink Tank Serial</label>
+              <span>{{ selectedPrinter!.detailedInfo.cartridge?.serialNumber }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedPrinter?.printerType === 'laser'">
+              <label>Cartridge Serial</label>
+              <span>{{ selectedPrinter!.detailedInfo.cartridge?.serialNumber }}</span>
             </div>
             <div class="detail-item">
               <label>Pages Printed</label>
-              <span>{{ selectedPrinter.detailedInfo.cartridge?.pagesPrinted | number }}</span>
+              <span>{{ selectedPrinter!.detailedInfo.cartridge?.pagesPrinted | number }}</span>
             </div>
-             <div class="detail-item">
-              <label>First Install Date</label>
-              <span>{{ selectedPrinter.detailedInfo.cartridge?.firstInstallDate }}</span>
+             <div class="detail-item" *ngIf="selectedPrinter?.printerType === 'inkjet'">
+              <label>Tank Install Date</label>
+              <span>{{ selectedPrinter!.detailedInfo.cartridge?.firstInstallDate }}</span>
+            </div>
+             <div class="detail-item" *ngIf="selectedPrinter?.printerType === 'laser'">
+              <label>Cartridge Install Date</label>
+              <span>{{ selectedPrinter!.detailedInfo.cartridge?.firstInstallDate }}</span>
             </div>
              <div class="detail-item">
               <label>Last Used Date</label>
-              <span>{{ selectedPrinter.detailedInfo.cartridge?.lastUsedDate }}</span>
+              <span>{{ selectedPrinter!.detailedInfo.cartridge?.lastUsedDate }}</span>
             </div>
           </div>
         </p-accordionTab>

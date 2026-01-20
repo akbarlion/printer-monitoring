@@ -16,7 +16,8 @@ export class AuthService {
   private refreshToken: string;
 
   constructor(private http: HttpClient) {
-    this.accessToken = localStorage.getItem('accessToken') || '';
+    // Only get tokens from memory, not localStorage for security
+    this.accessToken = '';
     this.refreshToken = localStorage.getItem('refreshToken') || '';
 
     const savedUser = localStorage.getItem('currentUser');
@@ -24,11 +25,10 @@ export class AuthService {
       this.currentUserSubject.next(JSON.parse(savedUser));
     }
 
-    if (this.refreshToken && !this.accessToken) {
+    // Auto-refresh on app start if we have refresh token
+    if (this.refreshToken) {
       this.refreshAccessToken().subscribe({
-        next: () => {
-          console.log('Auto refresh successful');
-        },
+        next: () => console.log('Auto refresh successful'),
         error: () => {
           console.log('Auto refresh failed, clearing tokens');
           this.clearTokens();
@@ -41,10 +41,11 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/auth/login`, credentials)
       .pipe(
         tap((response: any) => {
+          // Store access token only in memory
           this.accessToken = response.accessToken;
           this.refreshToken = response.refreshToken;
 
-          localStorage.setItem('accessToken', response.accessToken);
+          // Only store refresh token and user data in localStorage
           localStorage.setItem('refreshToken', response.refreshToken);
           localStorage.setItem('currentUser', JSON.stringify(response.user));
 
@@ -63,10 +64,11 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/auth/refresh`, { refreshToken })
       .pipe(
         tap((response: any) => {
+          // Store access token only in memory
           this.accessToken = response.accessToken;
           this.refreshToken = response.refreshToken;
 
-          localStorage.setItem('accessToken', response.accessToken);
+          // Only update refresh token in localStorage
           localStorage.setItem('refreshToken', response.refreshToken);
         }),
         catchError((error) => {
@@ -115,14 +117,13 @@ export class AuthService {
   }
 
   getAccessToken(): string {
-    const token = localStorage.getItem('accessToken') || this.accessToken;
-    return token;
+    // Only return token from memory, never from localStorage
+    return this.accessToken;
   }
 
   private clearTokens(): void {
     this.accessToken = '';
     this.refreshToken = '';
-    localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('currentUser');
     this.currentUserSubject.next(null);

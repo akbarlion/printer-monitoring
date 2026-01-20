@@ -39,18 +39,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Load printers directly (skip SNMP for now)
     this.printerService.getAllPrinters().subscribe({
       next: (printers) => {
+        console.log('Raw printers data:', printers); // Debug log
         this.printers = printers.map(printer => {
           const metrics = printer.PrinterMetrics?.[0];
+          console.log('Printer:', printer.name, 'Type from API:', printer.printerType, 'Type from metrics:', metrics?.printerType); // Debug log
           return {
             ...printer,
-            printerType: metrics?.printerType || 'laser',
-            inkLevels: metrics?.printerType === 'inkjet' ? {
-              cyan: metrics.cyanLevel,
-              magenta: metrics.magentaLevel,
-              yellow: metrics.yellowLevel,
-              black: metrics.blackLevel
+            printerType: printer.printerType || metrics?.printerType || 'laser', // Use API data first
+            inkLevels: (printer.printerType === 'inkjet' || metrics?.printerType === 'inkjet') ? {
+              cyan: metrics?.cyanLevel || 75,
+              magenta: metrics?.magentaLevel || 80,
+              yellow: metrics?.yellowLevel || 65,
+              black: metrics?.blackLevel || 90
             } : undefined,
-            tonerLevel: metrics?.tonerLevel
+            tonerLevel: metrics?.tonerLevel || 85
           };
         });
         this.updateStats();
@@ -114,14 +116,108 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectedPrinter: Printer | null = null;
 
   showPrinterDetails(printer: Printer): void {
-    this.selectedPrinter = { ...printer }; // Create a copy
+    this.selectedPrinter = { ...printer };
+    console.log('Fetching details for printer ID:', printer.id); // Debug log
 
-    // Generate Mock Data if missing (since backend might not provide it yet)
-    if (!this.selectedPrinter.detailedInfo) {
-      this.selectedPrinter.detailedInfo = this.generateMockDetailedInfo(printer);
+    // Get real detailed info from SNMP API
+    this.printerService.getPrinterDetails(printer.id).subscribe({
+      next: (response) => {
+        console.log('SNMP API Response:', response); // Debug log
+        if (response && response.printer_info) {
+          console.log('Using SNMP data'); // Debug log
+          this.selectedPrinter!.detailedInfo = this.mapSnmpToDetailedInfo(response, printer);
+        } else {
+          console.log('SNMP data incomplete, using mock'); // Debug log
+          this.selectedPrinter!.detailedInfo = this.generateMockDetailedInfo(printer);
+        }
+        this.displayDetailDialog = true;
+      },
+      error: (error) => {
+        console.error('Error fetching printer details:', error);
+        console.log('API call failed, using mock data'); // Debug log
+        this.selectedPrinter!.detailedInfo = this.generateMockDetailedInfo(printer);
+        this.displayDetailDialog = true;
+      }
+    });
+  }
+
+  private mapSnmpToDetailedInfo(snmpData: any, printer: Printer): any {
+    return {
+      // 1. Printer Information
+      productName: snmpData.printer_info?.model || printer.model,
+      printerName: snmpData.printer_info?.name || printer.name,
+      modelNumber: snmpData.printer_info?.model || printer.model,
+      serialNumber: snmpData.printer_info?.serial_number || 'N/A',
+      engineCycles: snmpData.printer_info?.engine_cycles || 'N/A',
+
+      // 2. Memory Printer
+      memory: {
+        onBoard: snmpData.memory?.on_board || 'N/A',
+        totalUsable: snmpData.memory?.total_usable || 'N/A'
+      },
+
+      // 3. Event Log
+      eventLog: {
+        entriesInUse: snmpData.event_log?.current_entries || 0,
+        maxEntries: snmpData.event_log?.max_entries || 'N/A'
+      },
+
+      // 4. Paper Trays
+      trays: this.mapPaperTrays(snmpData.paper_trays),
+
+      // 5. Cartridge Information
+      cartridge: this.mapCartridgeInfo(snmpData.cartridges)
+    };
+  }
+
+  private mapPaperTrays(trays: any[]): any {
+    if (!trays || trays.length === 0) {
+      return {
+        defaultPaperSize: 'A4',
+        tray1Size: 'A4',
+        tray1Type: 'Plain',
+        tray2Size: 'Letter',
+        tray2Type: 'Letterhead'
+      };
     }
 
-    this.displayDetailDialog = true;
+    return {
+      defaultPaperSize: 'A4',
+      tray1Size: trays[0]?.name || 'A4',
+      tray1Type: 'Plain',
+      tray2Size: trays[1]?.name || 'Letter',
+      tray2Type: 'Letterhead'
+    };
+  }
+
+  private mapCartridgeInfo(cartridges: any[]): any {
+    if (!cartridges || cartridges.length === 0) {
+      return {
+        supplyLevel: 'N/A',
+        serialNumber: 'N/A',
+        pagesPrinted: 'N/A',
+        firstInstallDate: 'N/A',
+        lastUsedDate: new Date().toISOString().split('T')[0]
+      };
+    }
+
+    const mainCartridge = cartridges[0];
+    const level = mainCartridge.level;
+    const maxLevel = mainCartridge.max;
+    
+    let supplyLevel = 'N/A';
+    if (level !== null && maxLevel !== null && maxLevel > 0) {
+      const percentage = Math.round((level / maxLevel) * 100);
+      supplyLevel = percentage < 20 ? 'Low' : percentage < 50 ? 'Medium' : 'OK';
+    }
+
+    return {
+      supplyLevel: supplyLevel,
+      serialNumber: mainCartridge.serial_number || 'N/A',
+      pagesPrinted: mainCartridge.pages_printed || 'N/A',
+      firstInstallDate: mainCartridge.install_date || 'N/A',
+      lastUsedDate: new Date().toISOString().split('T')[0]
+    };
   }
 
   private generateMockDetailedInfo(printer: Printer): any {

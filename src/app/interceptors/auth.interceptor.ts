@@ -1,100 +1,41 @@
-import { Injectable } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, switchMap, filter, take } from 'rxjs/operators';
-import { AuthService } from '../services/auth.service';
-import { SessionDialogService } from '../services/session-dialog.service';
-import { Router } from '@angular/router';
+import { Injectable, Inject } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-  constructor(
-    private authService: AuthService,
-    private sessionDialog: SessionDialogService,
-    private router: Router
-  ) {}
-
-  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<any> {
-    // Skip auth for auth endpoints
-    if (req.url.includes('/auth/')) {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // Skip auth for login/register requests
+    if (req.url.includes('/auth/login') || req.url.includes('/auth/register')) {
       return next.handle(req);
     }
 
-    // Add access token to headers
-    const token = this.authService.getAccessToken();
-    if (token) {
-      req = this.addToken(req, token);
-    } else if (localStorage.getItem('refreshToken') && !this.isRefreshing) {
-      // No access token but have refresh token, try to refresh
-      return this.handleTokenRefresh(req, next);
-    }
-
-    return next.handle(req).pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
-          return this.handleTokenRefresh(req, next);
+    // Get token from localStorage (refresh token) or memory
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (refreshToken) {
+      // For now, just add refresh token as Bearer (temporary fix)
+      const authReq = req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${refreshToken}`
         }
-        return throwError(() => error);
-      })
-    );
-  }
-
-  private addToken(request: HttpRequest<any>, token: string): HttpRequest<any> {
-    return request.clone({
-      setHeaders: { Authorization: `Bearer ${token}` }
-    });
-  }
-
-  private handleTokenRefresh(request: HttpRequest<any>, next: HttpHandler): Observable<any> {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
-
-      return this.authService.refreshAccessToken().pipe(
-        switchMap((token: any) => {
-          this.isRefreshing = false;
-          this.refreshTokenSubject.next(token.accessToken);
-          return next.handle(this.addToken(request, token.accessToken));
-        }),
-        catchError((error) => {
-          this.isRefreshing = false;
-          
-          // Show session expired dialog
-          this.sessionDialog.showSessionExpiredDialog().subscribe({
-            next: (result) => {
-              if (result === 'extend') {
-                // Try refresh again
-                this.authService.refreshAccessToken().subscribe({
-                  next: () => {
-                    window.location.reload();
-                  },
-                  error: () => {
-                    this.authService.logout().subscribe();
-                    this.router.navigate(['/login']);
-                  }
-                });
-              } else {
-                // Login again
-                this.authService.logout().subscribe();
-                this.router.navigate(['/login']);
-              }
-            }
-          });
-          
+      });
+      
+      return next.handle(authReq).pipe(
+        catchError(error => {
+          if (error.status === 401) {
+            // Clear tokens and redirect to login
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('currentUser');
+            // You might want to redirect to login here
+          }
           return throwError(() => error);
         })
       );
-    } else {
-      return this.refreshTokenSubject.pipe(
-        filter(token => token != null),
-        take(1),
-        switchMap(jwt => {
-          return next.handle(this.addToken(request, jwt));
-        })
-      );
     }
+
+    return next.handle(req);
   }
 }
