@@ -58,14 +58,15 @@ export class PrinterListComponent implements OnInit {
       next: (printers) => {
         this.printers = printers.map(printer => {
           const metrics = printer.PrinterMetrics?.[0];
+          const finalType = printer.printerType || metrics?.printerType || 'laser';
           return {
             ...printer,
-            printerType: metrics?.printerType || 'laser',
-            inkLevels: metrics?.printerType === 'inkjet' ? {
-              cyan: metrics.cyanLevel,
-              magenta: metrics.magentaLevel,
-              yellow: metrics.yellowLevel,
-              black: metrics.blackLevel
+            printerType: finalType,
+            inkLevels: finalType === 'inkjet' ? {
+              cyan: metrics?.cyanLevel,
+              magenta: metrics?.magentaLevel,
+              yellow: metrics?.yellowLevel,
+              black: metrics?.blackLevel
             } : undefined,
             tonerLevel: metrics?.tonerLevel
           };
