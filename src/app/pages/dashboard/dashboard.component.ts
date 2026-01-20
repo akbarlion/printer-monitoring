@@ -27,12 +27,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadDashboardData();
     this.startAutoRefresh();
+    // listen for updates from other components (eg. edit/save)
+    window.addEventListener('printers:updated', this.onPrintersUpdated);
   }
 
   ngOnDestroy(): void {
     if (this.refreshSubscription) {
       this.refreshSubscription.unsubscribe();
     }
+    window.removeEventListener('printers:updated', this.onPrintersUpdated);
+  }
+
+  // handler bound to window event
+  private onPrintersUpdated = () => {
+    this.loadDashboardData();
   }
 
   loadDashboardData(): void {

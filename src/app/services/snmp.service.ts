@@ -34,7 +34,9 @@ export class SnmpService {
   }
 
   testConnection(ipAddress: string, community: string = 'public'): Observable<{ success: boolean, message: string }> {
-    return this.http.post<{ success: boolean, message: string }>('http://localhost/api-printer/api/printers/test', {
+    // use environment base URL to respect proxy or deployed API
+    const url = `${environment.api_printer}printers/test`;
+    return this.http.post<{ success: boolean, message: string }>(url, {
       ipAddress,
       community
     });

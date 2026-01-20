@@ -182,15 +182,19 @@ export class PrinterListComponent implements OnInit {
 
     this.snmpService.testConnection(printer.ipAddress, printer.snmpCommunity || 'public').subscribe({
       next: (result) => {
+        console.log('SNMP test result for', printer.ipAddress, result);
         const newStatus = result.success ? 'online' : 'offline';
         const updateData = { status: newStatus as 'online' | 'offline' };
 
         this.printerService.updatePrinter(printer.id, updateData).subscribe({
           next: (updatedPrinter) => {
+            console.log('API update response:', updatedPrinter);
             const index = this.printers.findIndex(p => p.id === printer.id);
             if (index !== -1) {
               this.printers[index] = { ...this.printers[index], ...updatedPrinter };
             }
+            // notify other parts of the app (dashboard) that printers updated
+            try { window.dispatchEvent(new CustomEvent('printers:updated')); } catch (e) { /* noop */ }
             alert(`Status updated: ${newStatus}`);
           },
           error: (error) => {
