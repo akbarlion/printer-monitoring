@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, map } from 'rxjs';
-import { Printer, PrinterMetrics, PrinterAlert } from '../interfaces/printer.interface';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
+import { Printer, PrinterMetrics, PrinterAlert, BulkCheckResponse } from '../interfaces/printer.interface';
 import { SnmpService } from './snmp.service';
 import { environment } from '../../environments/environment.development';
 
@@ -16,8 +16,8 @@ export class PrinterService {
     private snmpService: SnmpService
   ) { }
 
-  getAllPrinters(): Observable<Printer[]> {
-    return this.http.get<Printer[]>(this.apiUrl);
+  getAllPrinters(): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrl);
   }
 
   getPrinter(id: string): Observable<Printer> {
@@ -26,6 +26,16 @@ export class PrinterService {
 
   createPrinter(printer: Partial<Printer>): Observable<Printer> {
     return this.http.post<Printer>(this.apiUrl, printer);
+  }
+
+  /**
+   * Create a printer using backend singular endpoint POST /printer
+   * Accepts minimal payload: { ip | ipAddress, name?, snmpProfile?, status?, poll?, community? }
+   * If `poll: true` the backend may return additional `details` or `details_error` in the response.
+   */
+  createPrinterServer(payload: any): Observable<any> {
+    const baseUrl = environment.api_printer;
+    return this.http.post<any>(`${baseUrl}printer`, payload);
   }
 
   updatePrinter(id: string, printer: Partial<Printer>): Observable<Printer> {
@@ -59,6 +69,19 @@ export class PrinterService {
     return this.http.post<{ success: boolean, message: string }>(`${this.apiUrl}/test`, printer);
   }
 
+  /**
+   * SNMP test endpoint used for debugging OIDs from FE.
+   * POST /printer/test_snmp_oid
+   * Payload: { ip, oid, community? }
+   * Response: { success, raw_value, cleaned_value }
+   */
+  testSnmpOid(ip: string, oid: string, community?: string): Observable<{ success: boolean, raw_value: string, cleaned_value: string }> {
+    const baseUrl = environment.api_printer;
+    const payload: any = { ip, oid };
+    if (community) payload.community = community;
+    return this.http.post<{ success: boolean, raw_value: string, cleaned_value: string }>(`${baseUrl}printer/test_snmp_oid`, payload);
+  }
+
   // SNMP Integration Methods
   refreshPrinterDataViaSNMP(printerId: string): Observable<Printer> {
     return this.getPrinter(printerId).pipe(
@@ -78,28 +101,21 @@ export class PrinterService {
     );
   }
 
-  bulkRefreshViaSNMP(): Observable<Printer[]> {
-    return this.getAllPrinters().pipe(
-      map(printers => {
-        const snmpPrinters = printers
-          .filter(p => p.ipAddress)
-          .map(p => ({ ip: p.ipAddress!, community: p.snmpCommunity || 'public' }));
 
-        if (snmpPrinters.length > 0) {
-          this.snmpService.bulkQuery(snmpPrinters).subscribe({
-            next: (results) => {
-              results.forEach((result, index) => {
-                const printer = printers[index];
-                if (printer && result) {
-                  const parsedData = this.snmpService.parseSnmpData(result);
-                  this.updatePrinterFromSNMP(printer.id, parsedData).subscribe();
-                }
-              });
-            },
-            error: (error) => console.error('Bulk SNMP Error:', error)
-          });
-        }
-        return printers;
+
+  bulkRefreshViaSNMP(): Observable<any[]> {
+    return this.getAllPrinters().pipe(
+      switchMap(printers => {
+        const targets = printers
+          .filter(p => p.ipAddress)
+          .map(p => ({
+            ip: p.ipAddress,
+            community: p.snmpCommunity || 'public'
+          }));
+
+        if (!targets.length) return of([]);
+
+        return this.snmpService.bulkQuery(targets);
       })
     );
   }

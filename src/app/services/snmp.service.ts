@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SnmpData, SnmpRequest } from '../interfaces/snmp.interface';
 import { environment } from '../../environments/environment.development';
+import { BulkCheckResponse } from '../interfaces/printer.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -10,32 +11,53 @@ import { environment } from '../../environments/environment.development';
 export class SnmpService {
   private apiUrl = environment.api_printer + 'snmp';
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+  ) { }
 
-  getPrinterData(ipAddress: string, community: string = 'public'): Observable<SnmpData> {
-    const request: SnmpRequest = {
+  getPrinterData(ipAddress: string, community: string = 'public'): Observable<any> {
+    const request = {
       ipAddress,
       community,
-      oids: [
-        '1.3.6.1.2.1.25.3.2.1.3.1',
-        '1.3.6.1.2.1.43.11.1.1.9.1.1',
-        '1.3.6.1.2.1.43.10.2.1.4.1.1',
-        '1.3.6.1.2.1.1.1.0',
-        '1.3.6.1.2.1.1.5.0',
-        '1.3.6.1.2.1.43.5.1.1.11.1'
-      ]
     };
 
-    return this.http.post<SnmpData>(`${this.apiUrl}/query`, request);
+    return this.http.post<any>(`${this.apiUrl}/test-full`, request);
   }
 
-  bulkQuery(printers: Array<{ ip: string, community?: string }>): Observable<SnmpData[]> {
-    return this.http.post<SnmpData[]>(`${this.apiUrl}/bulk-query`, { printers });
+  bulkQuery(
+    payload: { ip: string; community: string }[]
+  ): Observable<BulkCheckResponse[]> {
+    return this.http.post<BulkCheckResponse[]>(
+      `${this.apiUrl}/bulk-query`,
+      payload,
+      {
+        headers: new HttpHeaders({
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        })
+      }
+    );
   }
+
+  bulkCheckConnection(
+    payload: { ip: string; community: string }[]
+  ): Observable<BulkCheckResponse> {
+    return this.http.post<BulkCheckResponse>(
+      `${this.apiUrl}/bulk-check`,
+      payload,
+      {
+        headers: new HttpHeaders({
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        })
+      }
+    );
+  }
+
+
 
   testConnection(ipAddress: string, community: string = 'public'): Observable<{ success: boolean, message: string }> {
     // use environment base URL to respect proxy or deployed API
-    const url = `${environment.api_printer}printers/test`;
+    const url = `${environment.api_printer}snmp/test-full`;
     return this.http.post<{ success: boolean, message: string }>(url, {
       ipAddress,
       community

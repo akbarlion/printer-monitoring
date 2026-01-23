@@ -30,12 +30,7 @@ export class PrinterListComponent implements OnInit {
     private snmpService: SnmpService
   ) {
     this.addPrinterForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(3)]],
-      ipAddress: ['', [Validators.required, Validators.pattern(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)]],
-      model: ['', Validators.required],
-      printerType: ['laser', Validators.required],
-      location: ['', Validators.required],
-      snmpCommunity: ['public', Validators.required]
+      ipAddress: ['', [Validators.required, Validators.pattern(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)]]
     });
 
     this.editPrinterForm = this.fb.group({
@@ -83,7 +78,7 @@ export class PrinterListComponent implements OnInit {
   toggleAddForm(): void {
     this.showAddForm = !this.showAddForm;
     if (!this.showAddForm) {
-      this.addPrinterForm.reset({ snmpCommunity: 'public' });
+      this.addPrinterForm.reset();
     }
   }
 
@@ -109,25 +104,34 @@ export class PrinterListComponent implements OnInit {
   onSubmit(): void {
     if (this.addPrinterForm.valid) {
       this.isLoading = true;
-      const formData = this.addPrinterForm.value;
+      const ipAddress = this.addPrinterForm.get('ipAddress')?.value;
 
-      // Test SNMP connection first to determine initial status
-      this.snmpService.testConnection(formData.ipAddress, formData.snmpCommunity).subscribe({
-        next: (testResult) => {
+      // Get printer data via SNMP to retrieve name, model, and other properties
+      this.snmpService.getPrinterData(ipAddress, 'public').subscribe({
+        next: (response) => {
+          const printerInfo = response.data?.printer_info;
+          const printerType: 'inkjet' | 'laser' = printerInfo?.model?.toLowerCase().includes('tank') ? 'inkjet' : 'laser';
+
           const printerData = {
-            ...formData,
-            status: testResult.success ? 'online' as const : 'offline' as const,
+            ipAddress,
+            name: printerInfo?.name || `Printer-${ipAddress}`,
+            model: printerInfo?.model || 'Unknown Model',
+            printerType,
+            location: 'Office',
+            snmpCommunity: 'public',
+            status: 'online' as const,
             snmpProfile: 'default',
             isActive: true
           };
 
           this.printerService.createPrinter(printerData).subscribe({
             next: (printer) => {
-              this.printers.push(printer);
+              if (printer) {
+                this.printers.push(printer);
+              }
               this.toggleAddForm();
               this.isLoading = false;
-              const statusMsg = testResult.success ? 'online and ready!' : 'offline (check connection)';
-              alert(`Printer added successfully! Status: ${statusMsg}`);
+              alert(`Printer added successfully! Name: ${printerData.name}, Model: ${printerData.model}`);
             },
             error: (error) => {
               console.error('Error adding printer:', error);
@@ -137,9 +141,14 @@ export class PrinterListComponent implements OnInit {
           });
         },
         error: (error) => {
-          // If SNMP test fails, still create printer but as offline
+          // If SNMP fails, create with minimal data as offline
           const printerData = {
-            ...formData,
+            ipAddress,
+            name: `Printer-${ipAddress}`,
+            model: 'Unknown Model',
+            printerType: 'laser' as const,
+            location: 'Office',
+            snmpCommunity: 'public',
             status: 'offline' as const,
             snmpProfile: 'default',
             isActive: true
@@ -147,7 +156,9 @@ export class PrinterListComponent implements OnInit {
 
           this.printerService.createPrinter(printerData).subscribe({
             next: (printer) => {
-              this.printers.push(printer);
+              if (printer) {
+                this.printers.push(printer);
+              }
               this.toggleAddForm();
               this.isLoading = false;
               alert('Printer added successfully! Status: offline (SNMP connection failed)');

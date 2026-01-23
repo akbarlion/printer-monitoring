@@ -3,6 +3,7 @@ import { TopbarComponent } from './topbar/topbar.component';
 import { filter, Subscription } from 'rxjs';
 import { LayoutService } from './service/app.layout.service';
 import { NavigationEnd, Router } from '@angular/router';
+import { LoadingService } from '../services/loading.service';
 
 @Component({
   selector: 'app-layout',
@@ -21,7 +22,7 @@ export class AppLayoutComponent implements OnDestroy {
   @ViewChild(TopbarComponent) appTopbar!: TopbarComponent;
 
 
-  constructor(public layoutService: LayoutService, public renderer: Renderer2, public router: Router) {
+  constructor(public layoutService: LayoutService, public renderer: Renderer2, public router: Router, public loadingService: LoadingService) {
     this.overlayMenuOpenSubscription = this.layoutService.overlayOpen$.subscribe(() => {
       // if (!this.menuOutsideClickListener) {
       //   this.menuOutsideClickListener = this.renderer.listen('document', 'click', event => {

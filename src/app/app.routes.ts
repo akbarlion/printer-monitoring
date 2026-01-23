@@ -18,6 +18,7 @@ export const routes: Routes = [
       { path: 'printers', component: PrinterListComponent },
       { path: 'printer/:id', component: PrinterDetailComponent },
       { path: 'alerts', component: AlertsComponent }
-    ], canActivate: [authGuard]
+      // ], canActivate: [authGuard]
+    ]
   },
 ];

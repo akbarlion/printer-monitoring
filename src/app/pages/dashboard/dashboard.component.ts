@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { PrinterService } from '../../services/printer.service';
 import { Printer, PrinterAlert } from '../../interfaces/printer.interface';
 import { interval, Subscription } from 'rxjs';
+import { SnmpService } from '../../services/snmp.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -11,6 +12,7 @@ import { interval, Subscription } from 'rxjs';
 export class DashboardComponent implements OnInit, OnDestroy {
   printers: Printer[] = [];
   alerts: PrinterAlert[] = [];
+  isLoadingPrinters = false;
   dashboardStats = {
     total: 0,
     online: 0,
@@ -22,67 +24,90 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private refreshSubscription?: Subscription;
 
-  constructor(private printerService: PrinterService) { }
+  constructor(private printerService: PrinterService,
+    private snmpService: SnmpService
+  ) { }
 
   ngOnInit(): void {
     this.loadDashboardData();
-    this.startAutoRefresh();
+    // this.startAutoRefresh();
     // listen for updates from other components (eg. edit/save)
-    window.addEventListener('printers:updated', this.onPrintersUpdated);
+    // window.addEventListener('printers:updated', this.onPrintersUpdated);
   }
 
   ngOnDestroy(): void {
     if (this.refreshSubscription) {
       this.refreshSubscription.unsubscribe();
     }
-    window.removeEventListener('printers:updated', this.onPrintersUpdated);
+    //   window.removeEventListener('printers:updated', this.onPrintersUpdated);
   }
 
   // handler bound to window event
-  private onPrintersUpdated = () => {
-    this.loadDashboardData();
-  }
+  // private onPrintersUpdated = () => {
+  //   this.loadDashboardData();
+  // }
 
   loadDashboardData(): void {
-    // Load printers directly (skip SNMP for now)
+    this.isLoadingPrinters = true;
     this.printerService.getAllPrinters().subscribe({
       next: (printers) => {
-        console.log('Raw printers data:', printers); // Debug log
-        this.printers = printers.map(printer => {
-          const metrics = printer.PrinterMetrics?.[0];
-          console.log('Printer:', printer.name, 'Type from API:', printer.printerType, 'Type from metrics:', metrics?.printerType); // Debug log
-          return {
-            ...printer,
-            printerType: printer.printerType || metrics?.printerType || 'laser', // Use API data first
-            inkLevels: (printer.printerType === 'inkjet' || metrics?.printerType === 'inkjet') ? {
-              cyan: metrics?.cyanLevel || 75,
-              magenta: metrics?.magentaLevel || 80,
-              yellow: metrics?.yellowLevel || 65,
-              black: metrics?.blackLevel || 90
-            } : undefined,
-            tonerLevel: metrics?.tonerLevel || 85
-          };
-        });
+        // 1. Assign data awal
+        this.printers = printers
+        console.log(this.printers);
+
+
+        // 2. Jalanin bulk SNMP
+        this.runBulkSnmpCheck();
+
+        // 3. Update statistik dashboard
         this.updateStats();
+        this.isLoadingPrinters = false;
       },
-      error: (error) => {
-        console.error('Error loading printers:', error);
+      error: (err) => {
+        console.error('Load printers error:', err);
         this.printers = [];
         this.updateStats();
-      }
-    });
-
-    this.printerService.getPrinterAlerts().subscribe({
-      next: (response: any) => {
-        const alerts = response.data || response;
-        this.alerts = alerts.filter((alert: PrinterAlert) => alert.isAcknowledged === 0).slice(0, 5);
-      },
-      error: (error) => {
-        console.error('Error loading alerts:', error);
-        this.alerts = [];
+        this.isLoadingPrinters = false;
       }
     });
   }
+
+  private runBulkSnmpCheck(): void {
+    const payload = this.printers
+      .filter(p => p.ipAddress)
+      .map(p => ({
+        ip: p.ipAddress,
+        community: p.snmpCommunity || 'public'
+      }));
+
+    if (!payload.length) return;
+
+    this.snmpService.bulkCheckConnection(payload).subscribe({
+      next: (res) => {
+        res.results.forEach(result => {
+          const printer = this.printers.find(
+            p => p.ipAddress === result.ip
+          );
+
+          if (!printer) return;
+
+          printer.status = result.data.connected
+            ? 'online'
+            : 'offline';
+
+          printer.lastSeen = result.data.connected
+            ? new Date().toISOString()
+            : printer.lastSeen;
+        });
+
+        this.updateStats();
+      },
+      error: (err) => {
+        console.error('Bulk SNMP error:', err);
+      }
+    });
+  }
+
 
   private updateStats(): void {
     this.dashboardStats.total = this.printers.length;
@@ -136,14 +161,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.selectedPrinter!.detailedInfo = this.mapSnmpToDetailedInfo(response, printer);
         } else {
           console.log('SNMP data incomplete, using mock'); // Debug log
-          this.selectedPrinter!.detailedInfo = this.generateMockDetailedInfo(printer);
         }
         this.displayDetailDialog = true;
       },
       error: (error) => {
         console.error('Error fetching printer details:', error);
         console.log('API call failed, using mock data'); // Debug log
-        this.selectedPrinter!.detailedInfo = this.generateMockDetailedInfo(printer);
         this.displayDetailDialog = true;
       }
     });
@@ -212,7 +235,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const mainCartridge = cartridges[0];
     const level = mainCartridge.level;
     const maxLevel = mainCartridge.max;
-    
+
     let supplyLevel = 'N/A';
     if (level !== null && maxLevel !== null && maxLevel > 0) {
       const percentage = Math.round((level / maxLevel) * 100);
@@ -228,46 +251,4 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
   }
 
-  private generateMockDetailedInfo(printer: Printer): any {
-    const isLaser = printer.printerType === 'laser';
-
-    return {
-      // 1. Printer Information
-      productName: printer.model + (isLaser ? ' LaserJet' : ' OfficeJet'),
-      printerName: printer.name,
-      modelNumber: printer.model.split(' ')[0] + '-X100',
-      serialNumber: 'CN' + Math.random().toString(36).substr(2, 8).toUpperCase(),
-      engineCycles: Math.floor(Math.random() * 50000) + 1000,
-
-      // 2. Memory Printer
-      memory: {
-        onBoard: '512 MB',
-        totalUsable: '480 MB'
-      },
-
-      // 3. Event Log
-      eventLog: {
-        entriesInUse: Math.floor(Math.random() * 50),
-        maxEntries: 500
-      },
-
-      // 4. Paper Trays and Options
-      trays: {
-        defaultPaperSize: 'A4',
-        tray1Size: 'A4',
-        tray1Type: 'Plain',
-        tray2Size: 'Letter',
-        tray2Type: 'Letterhead'
-      },
-
-      // 5. Cartridge Information
-      cartridge: {
-        supplyLevel: (printer.tonerLevel || 80) < 20 ? 'Low' : 'OK',
-        serialNumber: 'CR' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-        pagesPrinted: printer.PrinterMetrics?.[0]?.pageCounter || 1200,
-        firstInstallDate: '2025-01-10',
-        lastUsedDate: new Date().toISOString().split('T')[0]
-      }
-    };
-  }
 }

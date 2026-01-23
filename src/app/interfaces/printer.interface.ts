@@ -32,7 +32,7 @@ export interface PrinterDetailedInfo {
   modelNumber?: string;
   serialNumber?: string;
   engineCycles?: number;
-  
+
   // 2. Memory Printer
   memory?: {
     onBoard: string;
@@ -91,4 +91,18 @@ export interface PrinterAlert {
   createdAt: string;
   acknowledgedAt?: string | null;
   acknowledgedBy?: string;
+}
+
+export interface BulkCheckResult {
+  ip: string;
+  success: boolean;
+  data: {
+    connected: boolean;
+    reason?: string;
+  };
+}
+
+export interface BulkCheckResponse {
+  success: boolean;
+  results: BulkCheckResult[];
 }

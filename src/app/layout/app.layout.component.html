@@ -1,12 +1,17 @@
 <div class="layout-wrapper">
   <app-topbar></app-topbar>
-  
+  <div class="global-loading-overlay" *ngIf="loadingService.isLoading$ | async">
+    <div class="global-loading-center">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
   <div class="layout-main-container">
     <div class="layout-main">
       <router-outlet></router-outlet>
     </div>
   </div>
-  
+
   <div class="layout-footer">
     <p>&copy; {{ currentYear }} Printer Monitoring System. All rights reserved.</p>
   </div>
