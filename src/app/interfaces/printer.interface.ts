@@ -18,7 +18,7 @@ export interface Printer {
   totalPages?: number;
   lastSeen?: string;
   lastPolled?: string;
-  isActive: boolean;
+  isActive: boolean | string;
   createdAt: string;
   updatedAt: string;
   PrinterMetrics?: PrinterMetrics[];

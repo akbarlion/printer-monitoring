@@ -25,13 +25,15 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
 import { DynamicDialogModule } from 'primeng/dynamicdialog';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
 import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 import { TopbarComponent } from './layout/topbar/topbar.component';
 import { AppLayoutComponent } from './layout/app.layout.component';
 import { AccordionModule } from 'primeng/accordion';
 import { DialogModule } from 'primeng/dialog';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { WebsocketService } from './services/websocket.service';
 
 
 @NgModule({
@@ -65,7 +67,8 @@ import { DialogModule } from 'primeng/dialog';
     DynamicDialogModule,
     ConfirmDialogModule,
     AccordionModule,
-    DialogModule
+    DialogModule,
+    ProgressSpinnerModule
   ],
   providers: [
     { provide: LocationStrategy, useClass: HashLocationStrategy },
@@ -81,6 +84,9 @@ import { DialogModule } from 'primeng/dialog';
     // },
     ConfirmationService,
     DialogService,
+    MessageService,
+    ConfirmationService,
+    WebsocketService
   ],
   bootstrap: [AppComponent]
 })

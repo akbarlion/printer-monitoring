@@ -1,8 +1,11 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { PrinterService } from '../../services/printer.service';
 import { Printer, PrinterAlert } from '../../interfaces/printer.interface';
 import { interval, Subscription } from 'rxjs';
 import { SnmpService } from '../../services/snmp.service';
+import { PrinterMonitoringService } from '../../services/printer-monitoring.service';
+import { WebsocketService } from '../../services/websocket.service';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,6 +16,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   printers: Printer[] = [];
   alerts: PrinterAlert[] = [];
   isLoadingPrinters = false;
+  wsConnected = false;
   dashboardStats = {
     total: 0,
     online: 0,
@@ -23,13 +27,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
   };
 
   private refreshSubscription?: Subscription;
+  private wsSubscription?: Subscription;
 
   constructor(private printerService: PrinterService,
-    private snmpService: SnmpService
+    private snmpService: SnmpService,
+    private printerMonitoring: PrinterMonitoringService,
+    private websocketService: WebsocketService,
+    private messageService: MessageService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
     this.loadDashboardData();
+    this.connectWebSocket();
     // this.startAutoRefresh();
     // listen for updates from other components (eg. edit/save)
     // window.addEventListener('printers:updated', this.onPrintersUpdated);
@@ -39,36 +49,81 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.refreshSubscription) {
       this.refreshSubscription.unsubscribe();
     }
-    //   window.removeEventListener('printers:updated', this.onPrintersUpdated);
+    if (this.wsSubscription) {
+      this.wsSubscription.unsubscribe();
+    }
+    this.websocketService.disconnect();
   }
 
-  // handler bound to window event
-  // private onPrintersUpdated = () => {
-  //   this.loadDashboardData();
-  // }
+  serviceMessage(severity: any, summary: any, detail: any) {
+    this.messageService.clear()
+    this.messageService.add({ severity: severity, summary: summary, detail: detail, life: 3000 });
+  }
 
   loadDashboardData(): void {
     this.isLoadingPrinters = true;
-    this.printerService.getAllPrinters().subscribe({
-      next: (printers) => {
-        // 1. Assign data awal
-        this.printers = printers
+
+    // Load printers
+    this.printerMonitoring.getPrinters()
+      .then((response: any) => {
+        this.printers = response.data;
         console.log(this.printers);
 
-
-        // 2. Jalanin bulk SNMP
-        this.runBulkSnmpCheck();
-
-        // 3. Update statistik dashboard
+        // Update stats setelah data loaded
         this.updateStats();
         this.isLoadingPrinters = false;
-      },
-      error: (err) => {
-        console.error('Load printers error:', err);
+      })
+      .catch((err) => {
+        console.log(err);
         this.printers = [];
         this.updateStats();
         this.isLoadingPrinters = false;
+      })
+
+    // Load recent alerts
+    this.loadRecentAlerts();
+  }
+
+  private loadRecentAlerts(): void {
+    this.printerMonitoring.getAlerts().subscribe({
+      next: (response) => {
+        // Get only recent 5 alerts, sorted by creation date
+        this.alerts = (response.data || [])
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5);
+      },
+      error: (error) => {
+        console.error('Failed to load alerts:', error);
+        this.alerts = [];
       }
+    });
+  }
+
+  private connectWebSocket(): void {
+    this.websocketService.connect();
+    this.wsConnected = true;
+
+    // Listen for new alerts
+    this.wsSubscription = this.websocketService.alerts$.subscribe(alert => {
+      this.wsConnected = true;
+
+      // Show toast notification for new alert
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'New Alert',
+        detail: `${alert.printer_id}: ${alert.message}`,
+        life: 8000
+      });
+
+      // Refresh alerts to get latest data
+      this.loadRecentAlerts();
+      this.cdr.detectChanges();
+    });
+
+    // Handle WebSocket connection status
+    this.websocketService.connectionStatus$.subscribe(status => {
+      this.wsConnected = status;
+      this.cdr.detectChanges();
     });
   }
 
@@ -86,7 +141,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: (res) => {
         res.results.forEach(result => {
           const printer = this.printers.find(
-            p => p.ipAddress === result.ip
+            p => p.ipAddress == result.ip
           );
 
           if (!printer) return;
@@ -111,11 +166,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private updateStats(): void {
     this.dashboardStats.total = this.printers.length;
-    this.dashboardStats.online = this.printers.filter(p => p.status === 'online').length;
-    this.dashboardStats.offline = this.printers.filter(p => p.status === 'offline').length;
-    this.dashboardStats.warning = this.printers.filter(p => p.status === 'warning').length;
-    this.dashboardStats.laser = this.printers.filter(p => p.printerType === 'laser').length;
-    this.dashboardStats.inkjet = this.printers.filter(p => p.printerType === 'inkjet').length;
+    this.dashboardStats.online = this.printers.filter(p => p.status == 'online').length;
+    this.dashboardStats.offline = this.printers.filter(p => p.status == 'offline').length;
+    this.dashboardStats.warning = this.printers.filter(p => p.status == 'warning').length;
+    this.dashboardStats.laser = this.printers.filter(p => p.printerType == 'laser').length;
+    this.dashboardStats.inkjet = this.printers.filter(p => p.printerType == 'inkjet').length;
   }
 
   private startAutoRefresh(): void {
@@ -127,6 +182,49 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   refreshNow(): void {
     this.loadDashboardData();
+  }
+
+  refreshAlerts(): void {
+    this.loadRecentAlerts();
+  }
+
+  get hasUnreadAlerts(): boolean {
+    // This will check if there are any unread alerts in the displayed 5
+    // The actual acknowledge all will fetch all alerts from API
+    return this.alerts.some(alert => alert.isAcknowledged == 0);
+  }
+
+  acknowledgeAllAlerts(): void {
+    // Get ALL unread alerts from API, not just the 5 displayed
+    this.printerMonitoring.getAlerts().subscribe({
+      next: (response) => {
+        const allUnreadAlerts = (response.data || []).filter((alert: any) => alert.isAcknowledged == 0);
+
+        if (allUnreadAlerts.length == 0) {
+          this.serviceMessage('info', 'No Unread Alerts', 'All alerts are already acknowledged');
+          return;
+        }
+
+        let completed = 0;
+        allUnreadAlerts.forEach((alert: any) => {
+          this.printerMonitoring.acknowledgeAlert(alert.id, 'user').subscribe({
+            next: () => {
+              completed++;
+              if (completed == allUnreadAlerts.length) {
+                this.serviceMessage('success', 'Success', `${allUnreadAlerts.length} alerts marked as read`);
+                this.loadRecentAlerts();
+              }
+            },
+            error: () => {
+              this.serviceMessage('error', 'Error', 'Failed to acknowledge some alerts');
+            }
+          });
+        });
+      },
+      error: () => {
+        this.serviceMessage('error', 'Error', 'Failed to load alerts');
+      }
+    });
   }
 
   getStatusClass(status: string): string {
@@ -143,31 +241,42 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return `severity-${severity}`;
   }
 
+  getSeverityIcon(severity: string): string {
+    switch (severity) {
+      case 'high': return 'pi-exclamation-triangle';
+      case 'medium': return 'pi-exclamation-circle';
+      case 'low': return 'pi-info-circle';
+      default: return 'pi-circle';
+    }
+  }
+
   // --- Dialog & Detailed Info Logic ---
 
   displayDetailDialog: boolean = false;
   selectedPrinter: Printer | null = null;
+  isLoadingDetails: boolean = false;
 
   showPrinterDetails(printer: Printer): void {
     this.selectedPrinter = { ...printer };
-    console.log('Fetching details for printer ID:', printer.id); // Debug log
+    this.displayDetailDialog = true; // Open dialog immediately
+    this.isLoadingDetails = true; // Show loading state
+    
+    // Set initial skeleton data to prevent accordion flicker
+    this.selectedPrinter.detailedInfo = this.getSkeletonDetailedInfo(printer);
 
-    // Get real detailed info from SNMP API
+    // Hit API after dialog is opened
     this.printerService.getPrinterDetails(printer.id).subscribe({
       next: (response) => {
-        console.log('SNMP API Response:', response); // Debug log
         if (response && response.printer_info) {
-          console.log('Using SNMP data'); // Debug log
           this.selectedPrinter!.detailedInfo = this.mapSnmpToDetailedInfo(response, printer);
         } else {
-          console.log('SNMP data incomplete, using mock'); // Debug log
+          this.selectedPrinter!.detailedInfo = this.getOfflineDetailedInfo(printer);
         }
-        this.displayDetailDialog = true;
+        this.isLoadingDetails = false;
       },
       error: (error) => {
-        console.error('Error fetching printer details:', error);
-        console.log('API call failed, using mock data'); // Debug log
-        this.displayDetailDialog = true;
+        this.selectedPrinter!.detailedInfo = this.getOfflineDetailedInfo(printer, error);
+        this.isLoadingDetails = false;
       }
     });
   }
@@ -202,7 +311,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private mapPaperTrays(trays: any[]): any {
-    if (!trays || trays.length === 0) {
+    if (!trays || trays.length == 0) {
       return {
         defaultPaperSize: 'A4',
         tray1Size: 'A4',
@@ -222,7 +331,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private mapCartridgeInfo(cartridges: any[]): any {
-    if (!cartridges || cartridges.length === 0) {
+    if (!cartridges || cartridges.length == 0) {
       return {
         supplyLevel: 'N/A',
         serialNumber: 'N/A',
@@ -248,6 +357,94 @@ export class DashboardComponent implements OnInit, OnDestroy {
       pagesPrinted: mainCartridge.pages_printed || 'N/A',
       firstInstallDate: mainCartridge.install_date || 'N/A',
       lastUsedDate: new Date().toISOString().split('T')[0]
+    };
+  }
+
+  private getSkeletonDetailedInfo(printer: Printer): any {
+    return {
+      // 1. Printer Information
+      productName: 'Loading...',
+      printerName: 'Loading...',
+      modelNumber: 'Loading...',
+      serialNumber: 'Loading...',
+      engineCycles: 0,
+
+      // 2. Memory Printer
+      memory: {
+        onBoard: 'Loading...',
+        totalUsable: 'Loading...'
+      },
+
+      // 3. Event Log
+      eventLog: {
+        entriesInUse: 0,
+        maxEntries: 'Loading...'
+      },
+
+      // 4. Paper Trays
+      trays: {
+        defaultPaperSize: 'Loading...',
+        tray1Size: 'Loading...',
+        tray1Type: 'Loading...',
+        tray2Size: 'Loading...',
+        tray2Type: 'Loading...'
+      },
+
+      // 5. Cartridge Information
+      cartridge: {
+        supplyLevel: 'Loading...',
+        serialNumber: 'Loading...',
+        pagesPrinted: 0,
+        firstInstallDate: 'Loading...',
+        lastUsedDate: 'Loading...'
+      }
+    };
+  }
+
+  private getOfflineDetailedInfo(printer: Printer, error?: any): any {
+    const errorMessage = error?.error?.message || 'Printer is offline or unreachable';
+    
+    return {
+      // 1. Printer Information
+      productName: printer.model || 'N/A',
+      printerName: printer.name || 'N/A',
+      modelNumber: printer.model || 'N/A',
+      serialNumber: 'N/A - Printer Offline',
+      engineCycles: 0, // Use 0 instead of string for number pipe
+      
+      // Error info
+      connectionStatus: 'Offline',
+      errorMessage: errorMessage,
+
+      // 2. Memory Printer
+      memory: {
+        onBoard: 'N/A - Printer Offline',
+        totalUsable: 'N/A - Printer Offline'
+      },
+
+      // 3. Event Log
+      eventLog: {
+        entriesInUse: 0, // Use 0 instead of string for number pipe
+        maxEntries: 'N/A - Printer Offline'
+      },
+
+      // 4. Paper Trays
+      trays: {
+        defaultPaperSize: 'N/A - Printer Offline',
+        tray1Size: 'N/A - Printer Offline',
+        tray1Type: 'N/A - Printer Offline',
+        tray2Size: 'N/A - Printer Offline',
+        tray2Type: 'N/A - Printer Offline'
+      },
+
+      // 5. Cartridge Information
+      cartridge: {
+        supplyLevel: 'N/A - Printer Offline',
+        serialNumber: 'N/A - Printer Offline',
+        pagesPrinted: 0,
+        firstInstallDate: 'N/A - Printer Offline',
+        lastUsedDate: 'N/A - Printer Offline'
+      }
     };
   }
 

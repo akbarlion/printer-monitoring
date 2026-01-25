@@ -1,7 +1,0 @@
-{
-    "/api-printer": {
-        "target": "http://localhost",
-        "secure": false,
-        "changeOrigin": true
-    }
-}

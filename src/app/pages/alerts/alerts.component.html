@@ -5,10 +5,20 @@
       <button pButton pRipple icon="pi pi-refresh" label="Refresh" (click)="loadAlerts()">
       </button>
 
+      <button pButton pRipple icon="pi pi-search" label="Check All Printers" severity="info"
+        (click)="triggerMonitoring()" [loading]="isMonitoring">
+      </button>
+
       <button pButton pRipple icon="pi pi-check-circle" label="Mark All Read" severity="success"
         (click)="markAllAsRead()" [disabled]="!hasUnreadAlerts">
       </button>
     </div>
+  </div>
+
+  <!-- WebSocket Status Indicator -->
+  <div class="websocket-status" [ngClass]="{'connected': wsConnected, 'disconnected': !wsConnected}">
+    <i class="pi" [ngClass]="wsConnected ? 'pi-wifi' : 'pi-wifi-off'"></i>
+    <span>{{ wsConnected ? 'Real-time monitoring active' : 'Real-time monitoring disconnected' }}</span>
   </div>
 
   <div class="alerts-filters">
@@ -34,9 +44,50 @@
     </div>
   </div>
 
+  <!-- Alert Summary Cards -->
+  <div class="alert-summary">
+    <div class="summary-card high">
+      <div class="card-content">
+        <i class="pi pi-exclamation-triangle"></i>
+        <div class="card-info">
+          <h3>{{ getAlertCountBySeverity('high') }}</h3>
+          <p>High Priority</p>
+        </div>
+      </div>
+    </div>
+    <div class="summary-card medium">
+      <div class="card-content">
+        <i class="pi pi-exclamation-circle"></i>
+        <div class="card-info">
+          <h3>{{ getAlertCountBySeverity('medium') }}</h3>
+          <p>Medium Priority</p>
+        </div>
+      </div>
+    </div>
+    <div class="summary-card low">
+      <div class="card-content">
+        <i class="pi pi-info-circle"></i>
+        <div class="card-info">
+          <h3>{{ getAlertCountBySeverity('low') }}</h3>
+          <p>Low Priority</p>
+        </div>
+      </div>
+    </div>
+    <div class="summary-card total">
+      <div class="card-content">
+        <i class="pi pi-bell"></i>
+        <div class="card-info">
+          <h3>{{ alerts.length }}</h3>
+          <p>Total Alerts</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="alerts-content">
     <p-table [value]="filteredAlerts" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[5, 10, 20]"
-      [loading]="isLoading" styleClass="p-datatable-striped" [globalFilterFields]="['printerName', 'message']">
+      [loading]="isLoading" styleClass="p-datatable-striped" [globalFilterFields]="['printerName', 'message']"
+      [(selection)]="selectedAlerts" dataKey="id">
 
       <ng-template pTemplate="header">
         <tr>
@@ -54,7 +105,7 @@
       </ng-template>
 
       <ng-template pTemplate="body" let-alert let-rowIndex="rowIndex">
-        <tr [ngClass]="getAlertRowClass(alert)">
+        <tr [ngClass]="getAlertRowClass(alert)" [@fadeIn]>
           <td>
             <p-tableCheckbox [value]="alert"></p-tableCheckbox>
           </td>
@@ -65,49 +116,37 @@
           </td>
           <td>
             <strong>{{ alert.printerName }}</strong>
+            <br>
+            <small class="text-muted">{{ alert.printerId }}</small>
           </td>
           <td>
             <span class="alert-type">{{ getAlertTypeLabel(alert.alertType) }}</span>
           </td>
           <td>
-            <span class="alert-message">{{ alert.message }}</span>
+            <span class="alert-message" [pTooltip]="alert.message">{{ alert.message | slice:0:50 }}{{
+              alert.message.length > 50 ? '...' : '' }}</span>
           </td>
           <td>
             <span class="alert-time">{{ alert.createdAt | date:'short' }}</span>
+            <br>
+            <small class="text-muted">{{ getTimeAgo(alert.createdAt) }}</small>
           </td>
           <td>
             <p-tag [value]="alert.isAcknowledged === 1 ? 'Read' : 'Unread'"
               [severity]="alert.isAcknowledged === 1 ? 'success' : 'warning'">
             </p-tag>
+            <div *ngIf="alert.isAcknowledged === 1" class="acknowledged-info">
+              <small>by {{ alert.acknowledgedBy }}</small>
+            </div>
           </td>
           <td>
             <div class="action-buttons">
-              <button 
-                *ngIf="alert.isAcknowledged === 0"
-                pButton 
-                pRipple
-                icon="pi pi-check" 
-                class="p-button-success mr-1"
-                (click)="acknowledgeAlert(alert)"
-                pTooltip="Mark as Read">
+              <button *ngIf="alert.isAcknowledged == 0" pButton pRipple icon="pi pi-check"
+                class="p-button-success p-button-sm mr-1" (click)="acknowledgeAlert(alert)" pTooltip="Mark as Read">
               </button>
 
-              <button 
-                pButton 
-                pRipple
-                icon="pi pi-eye" 
-                class="p-button-info mr-1"
-                (click)="viewAlertDetails(alert)"
-                pTooltip="View Details">
-              </button>
-
-              <button 
-                pButton 
-                pRipple
-                icon="pi pi-trash" 
-                class="p-button-danger"
-                (click)="deleteAlert(alert)"
-                pTooltip="Delete Alert">
+              <button pButton pRipple icon="pi pi-eye" class="p-button-info p-button-sm"
+                (click)="viewAlertDetails(alert)" pTooltip="View Details">
               </button>
             </div>
           </td>
@@ -121,10 +160,33 @@
               <i class="pi pi-info-circle" style="font-size: 3rem; color: #6c757d;"></i>
               <h3>No Alerts Found</h3>
               <p>There are no alerts matching your criteria.</p>
+              <button pButton pRipple label="Check All Printers" icon="pi pi-search" (click)="triggerMonitoring()"
+                class="mt-3">
+              </button>
             </div>
           </td>
         </tr>
       </ng-template>
     </p-table>
   </div>
+
+  <!-- Bulk Actions for Selected Alerts -->
+  <div class="bulk-actions" *ngIf="selectedAlerts.length > 0">
+    <p-card>
+      <div class="bulk-actions-content">
+        <span>{{ selectedAlerts.length }} alert(s) selected</span>
+        <div class="bulk-buttons">
+          <button pButton pRipple label="Mark Selected as Read" icon="pi pi-check" (click)="markSelectedAsRead()"
+            severity="success">
+          </button>
+          <button pButton pRipple label="Delete Selected" icon="pi pi-trash" (click)="deleteSelectedAlerts()"
+            severity="danger">
+          </button>
+        </div>
+      </div>
+    </p-card>
+  </div>
 </div>
+
+<!-- Toast for real-time notifications -->
+<p-toast position="top-right" [life]="5000"></p-toast>

@@ -1,6 +1,13 @@
+<p-toast></p-toast>
 <div class="dashboard-container">
   <!-- Header Stats -->
   <div class="stats-grid">
+    <!-- WebSocket Status Indicator -->
+    <div class="websocket-status" [ngClass]="{'connected': wsConnected, 'disconnected': !wsConnected}">
+      <i class="pi" [ngClass]="wsConnected ? 'pi-wifi' : 'pi-wifi-off'"></i>
+      <span>{{ wsConnected ? 'Real-time monitoring active' : 'Real-time monitoring disconnected' }}</span>
+    </div>
+
     <div class="stat-card total">
       <div class="stat-icon">🖨️</div>
       <div class="stat-info">
@@ -56,23 +63,46 @@
     <div class="dashboard-section">
       <div class="section-header">
         <h2>Recent Alerts</h2>
-        <button pButton pRipple class="btn-link" routerLink="/alerts">View All</button>
+        <div class="header-actions">
+          <button pButton pRipple class="btn-ack-all" (click)="acknowledgeAllAlerts()" 
+            [disabled]="!hasUnreadAlerts" title="Mark All as Read">
+            <i class="pi pi-check-circle"></i> Ack All
+          </button>
+          <button pButton pRipple class="btn-refresh" (click)="refreshAlerts()" title="Refresh Alerts">
+            Refresh
+          </button>
+          <button pButton pRipple class="btn-link" routerLink="/alerts">View All</button>
+        </div>
       </div>
 
       <div class="alerts-list" *ngIf="alerts.length > 0; else noAlerts">
         <div class="alert-item" *ngFor="let alert of alerts" [ngClass]="getSeverityClass(alert.severity)">
-          <div class="alert-icon">⚠️</div>
+          <div class="alert-icon">
+            <i class="pi" [ngClass]="getSeverityIcon(alert.severity)"></i>
+          </div>
           <div class="alert-content">
-            <h4>{{ alert.printerName }}</h4>
+            <div class="alert-header">
+              <h4>{{ alert.printerName || alert.printerId }}</h4>
+              <span class="alert-severity">{{ alert.severity | titlecase }}</span>
+            </div>
             <p>{{ alert.message }}</p>
-            <small>{{ alert.createdAt | date:'short' }}</small>
+            <div class="alert-meta">
+              <small class="alert-time">{{ alert.createdAt | date:'short' }}</small>
+              <span class="alert-status" [ngClass]="alert.isAcknowledged === 1 ? 'read' : 'unread'">
+                {{ alert.isAcknowledged === 1 ? 'Read' : 'Unread' }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       <ng-template #noAlerts>
         <div class="no-data">
+          <i class="pi pi-info-circle"></i>
           <p>No recent alerts</p>
+          <button pButton pRipple class="btn-check" (click)="refreshAlerts()">
+            Check for Alerts
+          </button>
         </div>
       </ng-template>
     </div>
@@ -154,7 +184,16 @@
   <p-dialog [(visible)]="displayDetailDialog" [header]="selectedPrinter ? selectedPrinter.name : 'Printer Details'"
     [modal]="true" [style]="{width: '50vw'}" [draggable]="false" [resizable]="false">
 
-    <div *ngIf="selectedPrinter && selectedPrinter.detailedInfo" class="printer-detail-content">
+    <!-- Loading State -->
+    <div *ngIf="isLoadingDetails" class="loading-details">
+      <div class="loading-content">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: #007bff;"></i>
+        <p>Loading printer details...</p>
+      </div>
+    </div>
+
+    <!-- Content when loaded -->
+    <div *ngIf="!isLoadingDetails && selectedPrinter && selectedPrinter.detailedInfo" class="printer-detail-content">
 
       <p-accordion [multiple]="true">
         <!-- 1. Printer Information (Expanded by default) -->
