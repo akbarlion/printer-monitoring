@@ -72,20 +72,19 @@ import { WebsocketService } from './services/websocket.service';
   ],
   providers: [
     { provide: LocationStrategy, useClass: HashLocationStrategy },
-    // {
-    //   provide: HTTP_INTERCEPTORS,
-    //   useClass: LoadingInterceptor,
-    //   multi: true
-    // },
-    // {
-    //   provide: HTTP_INTERCEPTORS,
-    //   useClass: AuthInterceptor,
-    //   multi: true
-    // },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: LoadingInterceptor,
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true
+    },
     ConfirmationService,
     DialogService,
     MessageService,
-    ConfirmationService,
     WebsocketService
   ],
   bootstrap: [AppComponent]
