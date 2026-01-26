@@ -71,6 +71,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
         // Update stats setelah data loaded
         this.updateStats();
+        
+        // Fetch SNMP data for online printers to get toner levels
+        this.fetchTonerLevels();
+        
         this.isLoadingPrinters = false;
       })
       .catch((err) => {
@@ -96,6 +100,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
         console.error('Failed to load alerts:', error);
         this.alerts = [];
       }
+    });
+  }
+
+  private fetchTonerLevels(): void {
+    // Only fetch for online laser printers
+    const laserPrinters = this.printers.filter(p => 
+      p.status === 'online' && p.printerType === 'laser'
+    );
+
+    laserPrinters.forEach(printer => {
+      this.printerService.getPrinterDetails(printer.id).subscribe({
+        next: (response) => {
+          if (response && response.data && response.data.cartridge_info) {
+            const supplyLevel = response.data.cartridge_info.supply_level;
+            // Extract percentage from "1%" format
+            const percentage = parseInt(supplyLevel.replace('%', '')) || 0;
+            printer.tonerLevel = percentage;
+          }
+        },
+        error: (error) => {
+          console.log(`Failed to get toner level for ${printer.name}:`, error);
+        }
+      });
     });
   }
 
