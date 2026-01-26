@@ -267,8 +267,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Hit API after dialog is opened
     this.printerService.getPrinterDetails(printer.id).subscribe({
       next: (response) => {
-        if (response && response.printer_info) {
-          this.selectedPrinter!.detailedInfo = this.mapSnmpToDetailedInfo(response, printer);
+        if (response && response.data && response.data.printer_info) {
+          this.selectedPrinter!.detailedInfo = this.mapSnmpToDetailedInfo(response.data, printer);
         } else {
           this.selectedPrinter!.detailedInfo = this.getOfflineDetailedInfo(printer);
         }
@@ -283,6 +283,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private mapSnmpToDetailedInfo(snmpData: any, printer: Printer): any {
     return {
+      // Connection status for successful response
+      connectionStatus: 'Online',
+      
       // 1. Printer Information
       productName: snmpData.printer_info?.model || printer.model,
       printerName: snmpData.printer_info?.name || printer.name,
@@ -306,7 +309,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       trays: this.mapPaperTrays(snmpData.paper_trays),
 
       // 5. Cartridge Information
-      cartridge: this.mapCartridgeInfo(snmpData.cartridges)
+      cartridge: this.mapCartridgeInfo(snmpData.supplies)
     };
   }
 
@@ -330,8 +333,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
   }
 
-  private mapCartridgeInfo(cartridges: any[]): any {
-    if (!cartridges || cartridges.length == 0) {
+  private mapCartridgeInfo(supplies: any): any {
+    if (!supplies) {
       return {
         supplyLevel: 'N/A',
         serialNumber: 'N/A',
@@ -341,22 +344,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
       };
     }
 
-    const mainCartridge = cartridges[0];
-    const level = mainCartridge.level;
-    const maxLevel = mainCartridge.max;
-
-    let supplyLevel = 'N/A';
-    if (level !== null && maxLevel !== null && maxLevel > 0) {
-      const percentage = Math.round((level / maxLevel) * 100);
-      supplyLevel = percentage < 20 ? 'Low' : percentage < 50 ? 'Medium' : 'OK';
-    }
-
+    // For inkjet printers with supplies object
+    const hasInkData = supplies.black || supplies.cyan || supplies.magenta || supplies.yellow;
+    
     return {
-      supplyLevel: supplyLevel,
-      serialNumber: mainCartridge.serial_number || 'N/A',
-      pagesPrinted: mainCartridge.pages_printed || 'N/A',
-      firstInstallDate: mainCartridge.install_date || 'N/A',
-      lastUsedDate: new Date().toISOString().split('T')[0]
+      supplyLevel: hasInkData ? 'Available' : 'Unknown',
+      serialNumber: 'N/A',
+      pagesPrinted: 'N/A',
+      firstInstallDate: 'N/A',
+      lastUsedDate: new Date().toISOString().split('T')[0],
+      // Store ink levels for reference
+      inkLevels: {
+        black: supplies.black || 'Unknown',
+        cyan: supplies.cyan || 'Unknown',
+        magenta: supplies.magenta || 'Unknown',
+        yellow: supplies.yellow || 'Unknown'
+      }
     };
   }
 
@@ -405,16 +408,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const errorMessage = error?.error?.message || 'Printer is offline or unreachable';
     
     return {
+      // Connection status for error handling
+      connectionStatus: 'Offline',
+      errorMessage: errorMessage,
+      
       // 1. Printer Information
       productName: printer.model || 'N/A',
       printerName: printer.name || 'N/A',
       modelNumber: printer.model || 'N/A',
       serialNumber: 'N/A - Printer Offline',
       engineCycles: 0, // Use 0 instead of string for number pipe
-      
-      // Error info
-      connectionStatus: 'Offline',
-      errorMessage: errorMessage,
 
       // 2. Memory Printer
       memory: {

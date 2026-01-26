@@ -26,6 +26,10 @@ export interface Printer {
 }
 
 export interface PrinterDetailedInfo {
+  // Connection status for error handling
+  connectionStatus?: string;
+  errorMessage?: string;
+  
   // 1. Printer Information
   productName?: string;
   printerName?: string;

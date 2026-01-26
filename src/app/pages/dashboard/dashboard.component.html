@@ -182,7 +182,7 @@
 
   <!-- Detailed Printer Dialog -->
   <p-dialog [(visible)]="displayDetailDialog" [header]="selectedPrinter ? selectedPrinter.name : 'Printer Details'"
-    [modal]="true" [style]="{width: '50vw'}" [draggable]="false" [resizable]="false">
+    [modal]="true" [style]="{width: '60vw', minHeight: '400px'}" [draggable]="false" [resizable]="false">
 
     <!-- Loading State -->
     <div *ngIf="isLoadingDetails" class="loading-details">
@@ -192,8 +192,24 @@
       </div>
     </div>
 
-    <!-- Content when loaded -->
-    <div *ngIf="!isLoadingDetails && selectedPrinter && selectedPrinter.detailedInfo" class="printer-detail-content">
+    <!-- Error State -->
+    <div *ngIf="!isLoadingDetails && selectedPrinter && selectedPrinter.detailedInfo?.connectionStatus === 'Offline'" class="error-details">
+      <div class="error-content">
+        <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #dc3545;"></i>
+        <h3>Printer Offline</h3>
+        <p>{{ selectedPrinter.detailedInfo?.errorMessage }}</p>
+        <p><strong>Basic Info:</strong></p>
+        <div class="basic-info">
+          <p><strong>Name:</strong> {{ selectedPrinter.name }}</p>
+          <p><strong>Model:</strong> {{ selectedPrinter.model }}</p>
+          <p><strong>IP Address:</strong> {{ selectedPrinter.ipAddress }}</p>
+          <p><strong>Location:</strong> {{ selectedPrinter.location }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content when loaded and online -->
+    <div *ngIf="!isLoadingDetails && selectedPrinter && selectedPrinter.detailedInfo && selectedPrinter.detailedInfo.connectionStatus !== 'Offline'" class="printer-detail-content">
 
       <p-accordion [multiple]="true">
         <!-- 1. Printer Information (Expanded by default) -->
@@ -201,19 +217,19 @@
           <div class="detail-grid">
             <div class="detail-item">
               <label>Product Name</label>
-              <span>{{ selectedPrinter.detailedInfo.productName }}</span>
+              <span>{{ selectedPrinter.detailedInfo.productName || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Printer Name</label>
-              <span>{{ selectedPrinter.detailedInfo.printerName }}</span>
+              <span>{{ selectedPrinter.detailedInfo.printerName || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Model Number</label>
-              <span>{{ selectedPrinter.detailedInfo.modelNumber }}</span>
+              <span>{{ selectedPrinter.detailedInfo.modelNumber || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Serial Number</label>
-              <span>{{ selectedPrinter.detailedInfo.serialNumber }}</span>
+              <span>{{ selectedPrinter.detailedInfo.serialNumber || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Engine Cycles</label>
@@ -222,16 +238,16 @@
           </div>
         </p-accordionTab>
 
-        <!-- 2. Memory Printer -->
-        <p-accordionTab header="Memory Printer">
+        <!-- 2. Memory Information -->
+        <p-accordionTab header="Memory Information">
           <div class="detail-grid">
             <div class="detail-item">
               <label>On Board Memory</label>
-              <span>{{ selectedPrinter.detailedInfo.memory?.onBoard }}</span>
+              <span>{{ selectedPrinter.detailedInfo.memory?.onBoard || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Total Usable RAM</label>
-              <span>{{ selectedPrinter.detailedInfo.memory?.totalUsable }}</span>
+              <span>{{ selectedPrinter.detailedInfo.memory?.totalUsable || 'N/A' }}</span>
             </div>
           </div>
         </p-accordionTab>
@@ -241,11 +257,11 @@
           <div class="detail-grid">
             <div class="detail-item">
               <label>Entries in Use</label>
-              <span>{{ selectedPrinter.detailedInfo.eventLog?.entriesInUse }}</span>
+              <span>{{ selectedPrinter.detailedInfo.eventLog?.entriesInUse || 0 }}</span>
             </div>
             <div class="detail-item">
               <label>Max Entries</label>
-              <span>{{ selectedPrinter.detailedInfo.eventLog?.maxEntries }}</span>
+              <span>{{ selectedPrinter.detailedInfo.eventLog?.maxEntries || 'N/A' }}</span>
             </div>
           </div>
         </p-accordionTab>
@@ -255,23 +271,23 @@
           <div class="detail-grid">
             <div class="detail-item">
               <label>Default Paper Size</label>
-              <span>{{ selectedPrinter.detailedInfo.trays?.defaultPaperSize }}</span>
+              <span>{{ selectedPrinter.detailedInfo.trays?.defaultPaperSize || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Tray 1 Size</label>
-              <span>{{ selectedPrinter.detailedInfo.trays?.tray1Size }}</span>
+              <span>{{ selectedPrinter.detailedInfo.trays?.tray1Size || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Tray 1 Type</label>
-              <span>{{ selectedPrinter.detailedInfo.trays?.tray1Type }}</span>
+              <span>{{ selectedPrinter.detailedInfo.trays?.tray1Type || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Tray 2 Size</label>
-              <span>{{ selectedPrinter.detailedInfo.trays?.tray2Size }}</span>
+              <span>{{ selectedPrinter.detailedInfo.trays?.tray2Size || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Tray 2 Type</label>
-              <span>{{ selectedPrinter.detailedInfo.trays?.tray2Type }}</span>
+              <span>{{ selectedPrinter.detailedInfo.trays?.tray2Type || 'N/A' }}</span>
             </div>
           </div>
         </p-accordionTab>
@@ -282,37 +298,42 @@
           <div class="detail-grid">
             <div class="detail-item">
               <label>Supply Level</label>
-              <span [ngClass]="{'status-warning': selectedPrinter!.detailedInfo.cartridge?.supplyLevel === 'Low'}">
-                {{ selectedPrinter!.detailedInfo.cartridge?.supplyLevel }}
+              <span [ngClass]="{'status-warning': selectedPrinter.detailedInfo.cartridge?.supplyLevel === 'Low'}">
+                {{ selectedPrinter.detailedInfo.cartridge?.supplyLevel || 'N/A' }}
               </span>
             </div>
             <div class="detail-item" *ngIf="selectedPrinter.printerType === 'inkjet'">
               <label>Ink Tank Serial</label>
-              <span>{{ selectedPrinter!.detailedInfo.cartridge?.serialNumber }}</span>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.serialNumber || 'N/A' }}</span>
             </div>
             <div class="detail-item" *ngIf="selectedPrinter.printerType === 'laser'">
               <label>Cartridge Serial</label>
-              <span>{{ selectedPrinter!.detailedInfo.cartridge?.serialNumber }}</span>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.serialNumber || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Pages Printed</label>
-              <span>{{ selectedPrinter!.detailedInfo.cartridge?.pagesPrinted | number }}</span>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.pagesPrinted | number }}</span>
             </div>
             <div class="detail-item" *ngIf="selectedPrinter.printerType === 'inkjet'">
               <label>Tank Install Date</label>
-              <span>{{ selectedPrinter!.detailedInfo.cartridge?.firstInstallDate }}</span>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.firstInstallDate || 'N/A' }}</span>
             </div>
             <div class="detail-item" *ngIf="selectedPrinter.printerType === 'laser'">
               <label>Cartridge Install Date</label>
-              <span>{{ selectedPrinter!.detailedInfo.cartridge?.firstInstallDate }}</span>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.firstInstallDate || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <label>Last Used Date</label>
-              <span>{{ selectedPrinter!.detailedInfo.cartridge?.lastUsedDate }}</span>
+              <span>{{ selectedPrinter.detailedInfo.cartridge?.lastUsedDate || 'N/A' }}</span>
             </div>
           </div>
         </p-accordionTab>
       </p-accordion>
     </div>
+
+    <!-- Footer with close button -->
+    <ng-template pTemplate="footer">
+      <button pButton pRipple label="Close" icon="pi pi-times" class="p-button-text" (click)="displayDetailDialog = false"></button>
+    </ng-template>
   </p-dialog>
 </div>
