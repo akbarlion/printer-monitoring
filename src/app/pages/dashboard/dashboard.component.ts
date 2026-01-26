@@ -291,25 +291,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
       printerName: snmpData.printer_info?.name || printer.name,
       modelNumber: snmpData.printer_info?.model || printer.model,
       serialNumber: snmpData.printer_info?.serial_number || 'N/A',
-      engineCycles: snmpData.printer_info?.engine_cycles || 'N/A',
+      engineCycles: parseInt(snmpData.printer_info?.engine_cycles) || 0,
 
       // 2. Memory Printer
       memory: {
         onBoard: snmpData.memory?.on_board || 'N/A',
-        totalUsable: snmpData.memory?.total_usable || 'N/A'
+        totalUsable: 'N/A'
       },
 
       // 3. Event Log
       eventLog: {
-        entriesInUse: snmpData.event_log?.current_entries || 0,
-        maxEntries: snmpData.event_log?.max_entries || 'N/A'
+        entriesInUse: 0,
+        maxEntries: 'N/A'
       },
 
       // 4. Paper Trays
-      trays: this.mapPaperTrays(snmpData.paper_trays),
+      trays: {
+        defaultPaperSize: snmpData.paper_trays?.default_paper_size || 'N/A',
+        tray1Size: snmpData.paper_trays?.tray_1_size || 'N/A',
+        tray1Type: snmpData.paper_trays?.tray_1_type || 'N/A',
+        tray2Size: snmpData.paper_trays?.tray_2_size || 'N/A',
+        tray2Type: snmpData.paper_trays?.tray_2_type || 'N/A'
+      },
 
       // 5. Cartridge Information
-      cartridge: this.mapCartridgeInfo(snmpData.supplies)
+      cartridge: {
+        supplyLevel: snmpData.cartridge_info?.supply_level || 'N/A',
+        serialNumber: snmpData.cartridge_info?.cartridge_serial || 'N/A',
+        pagesPrinted: parseInt(snmpData.cartridge_info?.pages_printed) || 0,
+        firstInstallDate: snmpData.cartridge_info?.cartridge_install_date || 'N/A',
+        lastUsedDate: snmpData.cartridge_info?.last_used_date || 'N/A'
+      }
     };
   }
 
