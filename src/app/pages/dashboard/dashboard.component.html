@@ -64,8 +64,8 @@
       <div class="section-header">
         <h2>Recent Alerts</h2>
         <div class="header-actions">
-          <button pButton pRipple class="btn-ack-all" (click)="acknowledgeAllAlerts()" 
-            [disabled]="!hasUnreadAlerts" title="Mark All as Read">
+          <button pButton pRipple class="btn-ack-all" (click)="acknowledgeAllAlerts()" [disabled]="!hasUnreadAlerts"
+            title="Mark All as Read">
             <i class="pi pi-check-circle"></i> Ack All
           </button>
           <button pButton pRipple class="btn-refresh" (click)="refreshAlerts()" title="Refresh Alerts">
@@ -193,7 +193,8 @@
     </div>
 
     <!-- Error State -->
-    <div *ngIf="!isLoadingDetails && selectedPrinter && selectedPrinter.detailedInfo?.connectionStatus === 'Offline'" class="error-details">
+    <div *ngIf="!isLoadingDetails && selectedPrinter && selectedPrinter.detailedInfo?.connectionStatus === 'Offline'"
+      class="error-details">
       <div class="error-content">
         <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #dc3545;"></i>
         <h3>Printer Offline</h3>
@@ -209,7 +210,9 @@
     </div>
 
     <!-- Content when loaded and online -->
-    <div *ngIf="!isLoadingDetails && selectedPrinter && selectedPrinter.detailedInfo && selectedPrinter.detailedInfo.connectionStatus !== 'Offline'" class="printer-detail-content">
+    <div
+      *ngIf="!isLoadingDetails && selectedPrinter && selectedPrinter.detailedInfo && selectedPrinter.detailedInfo.connectionStatus !== 'Offline'"
+      class="printer-detail-content">
 
       <p-accordion [multiple]="true">
         <!-- 1. Printer Information (Expanded by default) -->
@@ -239,7 +242,7 @@
         </p-accordionTab>
 
         <!-- 2. Memory Information -->
-        <p-accordionTab header="Memory Information">
+        <!-- <p-accordionTab header="Memory Information">
           <div class="detail-grid">
             <div class="detail-item">
               <label>On Board Memory</label>
@@ -250,10 +253,10 @@
               <span>{{ selectedPrinter.detailedInfo.memory?.totalUsable || 'N/A' }}</span>
             </div>
           </div>
-        </p-accordionTab>
+        </p-accordionTab> -->
 
         <!-- 3. Event Log -->
-        <p-accordionTab header="Event Log">
+        <!-- <p-accordionTab header="Event Log">
           <div class="detail-grid">
             <div class="detail-item">
               <label>Entries in Use</label>
@@ -264,7 +267,7 @@
               <span>{{ selectedPrinter.detailedInfo.eventLog?.maxEntries || 'N/A' }}</span>
             </div>
           </div>
-        </p-accordionTab>
+        </p-accordionTab> -->
 
         <!-- 4. Paper Trays and Options -->
         <p-accordionTab header="Paper Trays and Options">
@@ -333,7 +336,8 @@
 
     <!-- Footer with close button -->
     <ng-template pTemplate="footer">
-      <button pButton pRipple label="Close" icon="pi pi-times" class="p-button-text" (click)="displayDetailDialog = false"></button>
+      <button pButton pRipple label="Close" icon="pi pi-times" class="p-button-text"
+        (click)="displayDetailDialog = false"></button>
     </ng-template>
   </p-dialog>
 </div>
