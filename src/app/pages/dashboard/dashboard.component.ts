@@ -72,9 +72,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         // Update stats setelah data loaded
         this.updateStats();
         
-        // Fetch SNMP data for online printers to get toner levels
-        this.fetchTonerLevels();
-        
         this.isLoadingPrinters = false;
       })
       .catch((err) => {
@@ -112,15 +109,35 @@ export class DashboardComponent implements OnInit, OnDestroy {
     laserPrinters.forEach(printer => {
       this.printerService.getPrinterDetails(printer.id).subscribe({
         next: (response) => {
-          if (response && response.data && response.data.cartridge_info) {
-            const supplyLevel = response.data.cartridge_info.supply_level;
-            // Extract percentage from "1%" format
-            const percentage = parseInt(supplyLevel.replace('%', '')) || 0;
-            printer.tonerLevel = percentage;
+          if (response && response.data) {
+            // Update toner level
+            if (response.data.cartridge_info) {
+              const supplyLevel = response.data.cartridge_info.supply_level;
+              // Extract percentage from "1%" format or handle text like "Very Low"
+              if (supplyLevel.includes('%')) {
+                const percentage = parseInt(supplyLevel.replace('%', '')) || 0;
+                printer.tonerLevel = percentage;
+              } else {
+                // Handle text levels like "Very Low", "Low", "OK"
+                const levelMap: any = {
+                  'Very Low': 5,
+                  'Low': 15,
+                  'Medium': 50,
+                  'OK': 80,
+                  'Full': 100
+                };
+                printer.tonerLevel = levelMap[supplyLevel] || 0;
+              }
+            }
+            
+            // Update alerts
+            if (response.data.alerts && response.data.alerts.length > 0) {
+              printer.alerts = response.data.alerts;
+            }
           }
         },
         error: (error) => {
-          console.log(`Failed to get toner level for ${printer.name}:`, error);
+          console.log(`Failed to get data for ${printer.name}:`, error);
         }
       });
     });
@@ -197,7 +214,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.dashboardStats.offline = this.printers.filter(p => p.status == 'offline').length;
     this.dashboardStats.warning = this.printers.filter(p => p.status == 'warning').length;
     this.dashboardStats.laser = this.printers.filter(p => p.printerType == 'laser').length;
-    this.dashboardStats.inkjet = this.printers.filter(p => p.printerType == 'inkjet').length;
+    this.dashboardStats.inkjet = this.printers.filter(p => p.printerType == 'inkjet' || p.printerType == 'unknown').length;
   }
 
   private startAutoRefresh(): void {
@@ -309,6 +326,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private mapSnmpToDetailedInfo(snmpData: any, printer: Printer): any {
+    const printerType = snmpData.printer_type || printer.printerType || 'unknown';
+    
     return {
       // Connection status for successful response
       connectionStatus: 'Online',
@@ -341,15 +360,40 @@ export class DashboardComponent implements OnInit, OnDestroy {
         tray2Type: snmpData.paper_trays?.tray_2_type || 'N/A'
       },
 
-      // 5. Cartridge Information
-      cartridge: {
+      // 5. Cartridge/Ink Information - different for laser vs inkjet
+      cartridge: this.mapCartridgeInfoByType(snmpData, printerType)
+    };
+  }
+
+  private mapCartridgeInfoByType(snmpData: any, printerType: string): any {
+    if (printerType === 'inkjet') {
+      // For inkjet printers
+      return {
+        supplyLevel: 'Available', // General status
+        serialNumber: 'N/A',
+        pagesPrinted: parseInt(snmpData.cartridge_info?.pages_printed) || 0,
+        firstInstallDate: 'N/A',
+        lastUsedDate: 'N/A',
+        // Ink levels from cartridge_info
+        inkLevels: {
+          cyan: snmpData.cartridge_info?.cyan_level || 'Unknown',
+          magenta: snmpData.cartridge_info?.magenta_level || 'Unknown',
+          yellow: snmpData.cartridge_info?.yellow_level || 'Unknown',
+          black: snmpData.cartridge_info?.black_level || 'Unknown'
+        },
+        // Ink descriptions
+        inkDescriptions: snmpData.cartridge_info?.cartridge_descriptions || {}
+      };
+    } else {
+      // For laser printers (original logic)
+      return {
         supplyLevel: snmpData.cartridge_info?.supply_level || 'N/A',
         serialNumber: snmpData.cartridge_info?.cartridge_serial || 'N/A',
         pagesPrinted: parseInt(snmpData.cartridge_info?.pages_printed) || 0,
         firstInstallDate: snmpData.cartridge_info?.cartridge_install_date || 'N/A',
         lastUsedDate: snmpData.cartridge_info?.last_used_date || 'N/A'
-      }
-    };
+      };
+    }
   }
 
   private mapPaperTrays(trays: any[]): any {

@@ -133,6 +133,17 @@
             <p><strong>IP:</strong> {{ printer.ipAddress }}</p>
           </div>
           <div class="printer-stats" *ngIf="printer.status === 'online'">
+            <!-- Alert indicators -->
+            <div class="printer-alerts" *ngIf="printer.alerts && printer.alerts.length > 0">
+              <div class="alert-badge">
+                <i class="pi pi-exclamation-triangle"></i>
+                <span>{{ printer.alerts.length }} Alert{{ printer.alerts.length > 1 ? 's' : '' }}</span>
+              </div>
+              <div class="alert-preview">
+                <small>{{ printer.alerts[0] }}</small>
+              </div>
+            </div>
+            
             <div class="stat" *ngIf="printer.printerType === 'laser'">
               <span>Toner:</span>
               <div class="progress-bar">
@@ -328,6 +339,33 @@
             <div class="detail-item">
               <label>Last Used Date</label>
               <span>{{ selectedPrinter.detailedInfo.cartridge?.lastUsedDate || 'N/A' }}</span>
+            </div>
+          </div>
+          
+          <!-- Ink Levels for Inkjet Printers -->
+          <div *ngIf="selectedPrinter.printerType === 'inkjet' && selectedPrinter.detailedInfo.cartridge?.inkLevels" class="ink-levels-section">
+            <h4>Individual Ink Levels</h4>
+            <div class="ink-levels-grid">
+              <div class="ink-level-item cyan">
+                <label>Cyan</label>
+                <span>{{ selectedPrinter.detailedInfo.cartridge?.inkLevels?.cyan }}</span>
+                <small>{{ selectedPrinter.detailedInfo.cartridge?.inkDescriptions?.cyan || '' }}</small>
+              </div>
+              <div class="ink-level-item magenta">
+                <label>Magenta</label>
+                <span>{{ selectedPrinter.detailedInfo.cartridge?.inkLevels?.magenta }}</span>
+                <small>{{ selectedPrinter.detailedInfo.cartridge?.inkDescriptions?.magenta || '' }}</small>
+              </div>
+              <div class="ink-level-item yellow">
+                <label>Yellow</label>
+                <span>{{ selectedPrinter.detailedInfo.cartridge?.inkLevels?.yellow }}</span>
+                <small>{{ selectedPrinter.detailedInfo.cartridge?.inkDescriptions?.yellow || '' }}</small>
+              </div>
+              <div class="ink-level-item black">
+                <label>Black</label>
+                <span>{{ selectedPrinter.detailedInfo.cartridge?.inkLevels?.black }}</span>
+                <small>{{ selectedPrinter.detailedInfo.cartridge?.inkDescriptions?.black || '' }}</small>
+              </div>
             </div>
           </div>
         </p-accordionTab>

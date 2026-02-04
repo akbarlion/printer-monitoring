@@ -5,7 +5,7 @@ export interface Printer {
   model: string;
   location: string;
   status: 'online' | 'offline' | 'warning' | 'error';
-  printerType?: 'laser' | 'inkjet';
+  printerType?: 'laser' | 'inkjet' | 'unknown';
   snmpProfile: string;
   snmpCommunity?: string;
   tonerLevel?: number;
@@ -15,6 +15,7 @@ export interface Printer {
     yellow?: number;
     black?: number;
   };
+  alerts?: string[]; // Array of alert messages
   totalPages?: number;
   lastSeen?: string;
   lastPolled?: string;
@@ -65,6 +66,19 @@ export interface PrinterDetailedInfo {
     pagesPrinted: number;
     firstInstallDate: string;
     lastUsedDate: string;
+    // For inkjet printers
+    inkLevels?: {
+      cyan: string;
+      magenta: string;
+      yellow: string;
+      black: string;
+    };
+    inkDescriptions?: {
+      cyan: string;
+      magenta: string;
+      yellow: string;
+      black: string;
+    };
   };
 }
 
